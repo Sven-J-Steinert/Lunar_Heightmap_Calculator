@@ -79,7 +79,7 @@ class Window(Frame):
 
     def get_line(self,start_x,start_y,end_x,end_y):
 
-        self.canvas.create_line(start_x, start_y, end_x, end_y, fill="#f09c35", width=4)
+        #self.canvas.create_line(start_x, start_y, end_x, end_y, fill="#f09c35", width=4)
         print(start_x, end=' ')
         print(start_y, end=' ')
         print(end_x, end=' ')
@@ -88,8 +88,15 @@ class Window(Frame):
 
         delta_x = end_x - start_x
         delta_y = end_y - start_y
-        step_x = delta_x/ abs(min(delta_x,delta_y))
-        step_y = delta_y/ abs(min(delta_x,delta_y))
+
+        print(delta_x, end=' ')
+        print(delta_y)
+
+        calc_res = max(abs(delta_x),abs(delta_y))
+
+        step_x = delta_x/ calc_res
+        step_y = delta_y/ calc_res
+
         print('step x: ' + str(step_x))
         print('step y: ' + str(step_y))
 
@@ -98,11 +105,13 @@ class Window(Frame):
         print('x: ' + str(walk_x))
         print('y: ' + str(walk_y))
         line = []
-        for a in range(100):
+        line.append(tuple((int(walk_y), int(walk_x))))
+        for a in range(calc_res):
             walk_x = walk_x + step_x
             walk_y = walk_y + step_y
-            line.append(tuple((int(walk_x), int(walk_y))))
+            line.append(tuple((int(walk_y), int(walk_x))))
         print(line)
+        print(len(line))
 
         for i in range(len(line)):
             #self.data[line[i]] = 1
