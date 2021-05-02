@@ -1,4 +1,5 @@
 from skimage import io, img_as_float
+import math
 import numpy as np
 from PIL import ImageTk,Image
 Image.MAX_IMAGE_PIXELS = 1000000000
@@ -12,6 +13,11 @@ from PIL import Image, ImageTk
 
 class Window(Frame):
     def __init__(self, master=None):
+
+        # HEIGHTMAP PROPERTY SETTINGS
+        self.pixel_width = int(input('Insert width of a pixel [m]: '))
+        self.contras_scale = int(input('Insert contrast scale [m]: '))
+
         Frame.__init__(self, master)
         self.master = master
         self._geom='200x200+0+0'
@@ -24,7 +30,7 @@ class Window(Frame):
         self.pack(fill=BOTH, expand=1)
 
 
-        print('LOADING     ', end='', flush=True)
+        print('LOADING   ', end='', flush=True)
         URL = 'LDEM_80S_20M_cut.jpg'
 
         raw = io.imread(URL)
@@ -32,7 +38,7 @@ class Window(Frame):
         self.data = raw
         print('done. \"' + URL + '\" ' + str(self.data.shape)  + ' min: ' + str(np.min(self.data)) + '  max: ' + str(np.max(self.data)))
 
-        print('CONVERTING  ', end='', flush=True)
+        print('CONTRAST  ', end='', flush=True)
         raw = raw - np.min(raw)
         raw = raw / np.max(raw)
         self.display = raw
@@ -47,6 +53,7 @@ class Window(Frame):
 
         self.draw_line = None
         self.new_dot = True
+
 
     def refresh(self):
         im = Image.open('display.png')
@@ -77,8 +84,9 @@ class Window(Frame):
         else:
             end_x = x
             end_y = y
-            self.get_line(start_x,start_y,end_x,end_y)
-            self.new_dot = True
+            if ((start_x != end_x ) and (start_y != end_y )):
+                self.get_line(start_x,start_y,end_x,end_y)
+                self.new_dot = True
 
     def get_line(self,start_x,start_y,end_x,end_y):
         if self.draw_line is not None:
@@ -105,10 +113,19 @@ class Window(Frame):
             walk_y = walk_y + step_y
             line.append(tuple((int(walk_y), int(walk_x))))
 
+        data_list = []
+        for i in range(len(line)):
+            data_list.append(self.data[line[i]][0])
 
+
+        meter_count = 0
+        for i in range(1,len(data_list)):
+            delta_step = (data_list[i] - data_list[i-1]) * self.contras_scale
+            meter_count = meter_count + math.sqrt(self.pixel_width**2 + delta_step**2)
+        print(str(meter_count) + ' m')
 
 root = Tk()
 app = Window(root)
-root.attributes('-fullscreen', False)
+root.attributes('-fullscreen', True)
 root.wm_title("Tkinter window")
 root.mainloop()
