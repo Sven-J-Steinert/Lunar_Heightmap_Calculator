@@ -24,24 +24,28 @@ class Window(Frame):
         self.pack(fill=BOTH, expand=1)
 
 
-
+        print('LOADING     ', end='', flush=True)
         URL = 'LDEM_80S_20M_cut.jpg'
 
         raw = io.imread(URL)
         raw = img_as_float(raw)
         self.data = raw
-        print('loaded \"' + URL + '\" ' + str(raw.shape)  + ' min: ' + str(np.min(raw)) + '  max: ' + str(np.max(raw)))
+        print('done. \"' + URL + '\" ' + str(self.data.shape)  + ' min: ' + str(np.min(self.data)) + '  max: ' + str(np.max(self.data)))
+
+        print('CONVERTING  ', end='', flush=True)
         raw = raw - np.min(raw)
-        self.display = raw / np.max(raw)
-        io.imsave('display.png', self.display)
-        print('display \"' + URL + '\" ' + str(raw.shape)  + ' min: ' + str(np.min(raw)) + '  max: ' + str(np.max(raw)))
+        raw = raw / np.max(raw)
+        self.display = raw
+
+        io.imsave('display.png', (self.display*255).astype(np.uint8))
+        print('done. \"' + URL + '\" ' + str(self.display.shape)  + ' min: ' + str(np.min(self.display)) + '  max: ' + str(np.max(self.display)))
 
 
         im = Image.open('display.png')
         self.canvas.image = ImageTk.PhotoImage(im)
         self.display_image = self.canvas.create_image((0,0), image=self.canvas.image, anchor='nw')
 
-
+        self.draw_line = None
         self.new_dot = True
 
     def refresh(self):
@@ -57,13 +61,12 @@ class Window(Frame):
           global x,y
           x = content.x
           y = content.y
-          print(str(x) + ' , ' + str(y))
-          self.draw_line(x,y)
+          self.calc_line(x,y)
 
     def right_click(self,v):
-          print('clear')
+          print('Right Click')
 
-    def draw_line(self,x,y):
+    def calc_line(self,x,y):
 
         global start_x, start_y
 
@@ -78,48 +81,29 @@ class Window(Frame):
             self.new_dot = True
 
     def get_line(self,start_x,start_y,end_x,end_y):
-
-        #self.canvas.create_line(start_x, start_y, end_x, end_y, fill="#f09c35", width=4)
-        print(start_x, end=' ')
-        print(start_y, end=' ')
-        print(end_x, end=' ')
-        print(end_y)
+        if self.draw_line is not None:
+            self.canvas.delete(self.draw_line)
+        self.draw_line = self.canvas.create_line(start_x, start_y, end_x, end_y, fill="#f09c35", width=4)
 
 
         delta_x = end_x - start_x
         delta_y = end_y - start_y
-
-        print(delta_x, end=' ')
-        print(delta_y)
 
         calc_res = max(abs(delta_x),abs(delta_y))
 
         step_x = delta_x/ calc_res
         step_y = delta_y/ calc_res
 
-        print('step x: ' + str(step_x))
-        print('step y: ' + str(step_y))
 
         walk_x = start_x
         walk_y = start_y
-        print('x: ' + str(walk_x))
-        print('y: ' + str(walk_y))
+
         line = []
         line.append(tuple((int(walk_y), int(walk_x))))
         for a in range(calc_res):
             walk_x = walk_x + step_x
             walk_y = walk_y + step_y
             line.append(tuple((int(walk_y), int(walk_x))))
-        print(line)
-        print(len(line))
-
-        for i in range(len(line)):
-            #self.data[line[i]] = 1
-            self.display[line[i]] = tuple((1,0,0))
-        io.imsave('display.png', self.display)
-        self.refresh()
-        #print(self.data[start_x,start_y][0])
-        #print(self.data[end_x,end_y][0])
 
 
 
