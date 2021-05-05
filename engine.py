@@ -1,5 +1,7 @@
 from skimage import io, img_as_float
-import math
+from mpmath import mp
+mp.prec = 200   # precision: 32 digits after zero
+
 import numpy as np
 from PIL import ImageTk,Image
 Image.MAX_IMAGE_PIXELS = 1000000000
@@ -44,6 +46,7 @@ class Window(Frame):
 
         print('LOADING   ', end='', flush=True)
         URL = 'LDEM_80S_20M_cut.jpg'
+        #URL = 'white.jpg'
 
         raw = io.imread(URL)
         raw = img_as_float(raw)
@@ -179,32 +182,52 @@ class Window(Frame):
         walk_x = start_x
         walk_y = start_y
 
-        line = []
-        line.append(tuple((int(walk_y), int(walk_x))))
+        point_list = []
+        point_list.append(tuple((int(walk_y) * self.pixel_width, int(walk_x) * self.pixel_width, self.data[tuple((int(walk_y), int(walk_x)))][0] * self.elevation_range)))
         for a in range(calc_res):
             walk_x = walk_x + step_x
             walk_y = walk_y + step_y
-            line.append(tuple((int(walk_y), int(walk_x))))
+            point_list.append(tuple((int(walk_y) * self.pixel_width, int(walk_x) * self.pixel_width, self.data[tuple((int(walk_y), int(walk_x)))][0] * self.elevation_range)))
 
+        #print(point_list)
 
-        data_list = []
-        for i in range(len(line)):
-            data_list.append(self.data[line[i]][0])
+        vector_list = []
+        for i in range(1,len(point_list)):
+            previous = np.array([point_list[i-1]])
+            current = np.array([point_list[i]])
+            delta = current-previous
+            vector_list.append(delta[0])
 
-
+        flat_vector_list = []
+        for i in range(len(vector_list)):
+            flat_vector_list.append(np.array((vector_list[i][0],vector_list[i][1])))
 
         meter_count = 0
-        for i in range(1,len(data_list)):
-            delta_step = (data_list[i] - data_list[i-1]) * self.elevation_range
-            meter_count = meter_count + math.sqrt(self.pixel_width**2 + delta_step**2)
+        flat_meter_count = 0
+        for x in range(0,len(vector_list)):
+            meter_count = meter_count + np.linalg.norm(vector_list[x])
+            flat_meter_count = flat_meter_count + np.linalg.norm(flat_vector_list[x])
+
+        flat_length = mp.sqrt(delta_x**2 + delta_y**2) * self.pixel_width
+        circle_segment = self.planet_diameter * mp.asin(flat_length/self.planet_diameter)
+        distortion = mp.mpf((1 - (flat_length/circle_segment)) * 100)
+
+
+        # CORRECTING EDGE DISTORTION
+        alpha = mp.mpf(mp.atan(delta_y/delta_x))
+        x_calc = mp.mpf(1 - abs(0.0773*mp.sin(-4*alpha))) # curve fitted error correction
+        meter_count = float(mp.mpf(x_calc * meter_count))
+        flat_meter_count = float(mp.mpf(x_calc * flat_meter_count))
+
+        # INFO OUTPUT
+        print(f'{meter_count:.2f}' + ' m')
+        print('             with ~' + f'{float(distortion):.4f}' + '% curvature distortion (' + f'{float(flat_length):.4f}' + ' m flat vs. ' + f'{float(circle_segment):.4f}' + ' m curved)')
+        edge_distortion = abs((1 - (flat_length/flat_meter_count)) *100)
+        print('             with ~' + f'{float(edge_distortion):.4f}' + '% edge distortion left (' + f'{float(flat_length):.4f}' + ' m flat vs. ' + f'{float(flat_meter_count):.4f}' + ' m calculated flat)')
 
         self.draw_result_box = self.canvas.create_rectangle(start_x+self.offset_x+(delta_x*0.5)-40, start_y+self.offset_y+(delta_y*0.5)-12, start_x+self.offset_x+(delta_x*0.5)+40, start_y+self.offset_y+(delta_y*0.5)+12, fill='white')
         self.draw_result = self.canvas.create_text(start_x+self.offset_x+(delta_x*0.5), start_y+self.offset_y+(delta_y*0.5),fill="black",font="Arial 12", text=f'{(meter_count/1000):.3f}'+' m')
 
-        flat_length = (len(line)*self.pixel_width)
-        circle_segment = self.planet_diameter * math.asin(flat_length/self.planet_diameter)
-        distortion = (1 - ((len(line)*self.pixel_width)/circle_segment)) * 100
-        print(f'{meter_count:.2f}' + ' m        with ~' + f'{distortion:.4f}' + '% curvature distortion (' + str(flat_length) + ' m flat vs. ' + f'{circle_segment:.4f}' + ' m curved)')
 
 custom_input = input('LOAD preset? No [Yes] ')
 if custom_input == '':
