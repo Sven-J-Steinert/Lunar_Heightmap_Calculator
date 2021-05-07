@@ -1,6 +1,6 @@
 from skimage import io, img_as_float
 from mpmath import mp
-mp.prec = 200   # precision: 32 digits after zero
+mp.prec = 100   # precision: 32 digits after zero
 
 import numpy as np
 from PIL import ImageTk,Image
@@ -32,7 +32,6 @@ class Window(Frame):
         master.bind("<Button 1>",self.left_click)
         master.bind('<B3-Motion>', self.right_click_drag)
         master.bind("<Button 3>",self.right_click)
-        master.bind('<Key>', self.key_press)
 
         master.bind("w",self.go_top)
         master.bind("a",self.go_left)
@@ -75,8 +74,6 @@ class Window(Frame):
 
         self.new_dot = True
 
-    def key_press(self,event):
-        print(event)
 
     def right_click_drag(self,event):
         delta_x = self.old_drag_x - event.x
@@ -86,22 +83,18 @@ class Window(Frame):
         self.old_drag_y = event.y
 
     def go_left(self,event):
-        print('left')
         self.offset_x = self.offset_x + 200
         self.move_image(200,0)
 
     def go_right(self,event):
-        print('right')
         self.offset_x = self.offset_x - 200
         self.move_image(-200,0)
 
     def go_top(self,event):
-        print('top')
         self.offset_y = self.offset_y + 200
         self.move_image(0,200)
 
     def go_bottom(self,event):
-        print('bottom')
         self.offset_y = self.offset_y - 200
         self.move_image(0,-200)
 
@@ -135,16 +128,18 @@ class Window(Frame):
 
     def calc_line(self,x,y):
 
-        global start_x, start_y
-
         if self.new_dot:
-            start_x = x - self.offset_x
-            start_y = y - self.offset_y
+            self.start_x = x - self.offset_x
+            self.start_y = y - self.offset_y
             self.draw_dot_temp = self.canvas.create_oval(x+5, y+5, x-5, y-5, fill="#e08616", outline="black")
             self.new_dot = False
         else:
             end_x = x - self.offset_x
             end_y = y - self.offset_y
+            start_x = self.start_x - self.offset_x
+            start_y = self.start_y - self.offset_y
+            print(tuple((start_x,start_y)))
+            print(tuple((end_x,end_y)))
             if ((start_x != end_x ) and (start_y != end_y )):
                 self.get_line(start_x,start_y,end_x,end_y)
                 self.new_dot = True
