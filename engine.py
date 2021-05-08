@@ -2,6 +2,8 @@ from skimage import io, img_as_float
 from mpmath import mp
 mp.prec = 100   # precision: 32 digits after zero
 
+
+import math
 import numpy as np
 from PIL import ImageTk,Image
 Image.MAX_IMAGE_PIXELS = 1000000000
@@ -163,59 +165,121 @@ class Window(Frame):
         self.draw_dot_1 = self.canvas.create_oval(start_x+self.offset_x+5, start_y+self.offset_y+5, start_x+self.offset_x-5, start_y+self.offset_y-5, fill="#e08616", outline="black")
         self.draw_dot_2 = self.canvas.create_oval(end_x+self.offset_x+5, end_y+self.offset_y+5, end_x+self.offset_x-5, end_y+self.offset_y-5, fill="#e08616", outline="black")
 
+        print('Inputs: ', end=' ')
+        print(tuple((start_x,start_y)) + tuple((end_x,end_y)))
+
         delta_x = end_x - start_x
         delta_y = end_y - start_y
+        print('Delta: ', end=' ')
+        print(tuple((delta_x,delta_y)))
 
-        calc_res = max(abs(delta_x),abs(delta_y))
+        # NEW CALCULATION METHOD
 
-        step_x = delta_x/ calc_res
-        step_y = delta_y/ calc_res
+        self.sample_length = 1 # in pixel
+
+        alpha = mp.atan(delta_x/delta_y)
+
+        x_step_size = math.sin(alpha) * self.sample_length
+        y_step_size = math.cos(alpha) * self.sample_length
+
+
+        print('Step size: ', end=' ')
+        print(tuple((x_step_size,y_step_size)))
+
+        flat_length = math.sqrt(delta_x**2 + delta_y**2)
+        flat_length_meter = math.sqrt((delta_x * self.pixel_width)**2 + (delta_y * self.pixel_width)**2)
+
+        steps = int(flat_length / self.sample_length)
 
         walk_x = start_x
         walk_y = start_y
 
         point_list = []
-        point_list.append(tuple((int(walk_y) * self.pixel_width, int(walk_x) * self.pixel_width, self.data[tuple((int(walk_y), int(walk_x)))][0] * self.elevation_range)))
-        for a in range(calc_res):
-            walk_x = walk_x + step_x
-            walk_y = walk_y + step_y
-            point_list.append(tuple((int(walk_y) * self.pixel_width, int(walk_x) * self.pixel_width, self.data[tuple((int(walk_y), int(walk_x)))][0] * self.elevation_range)))
+        point_list.append(tuple((start_x, start_y)))
+        for i in range(0,steps):
+            walk_x = walk_x + x_step_size
+            walk_y = walk_y + y_step_size
+            point_list.append(tuple((walk_x, walk_y)))
 
-        #print(point_list)
+
+        # BILINEAR INTERPOLATION
+        #        x_1          x_2
+        # y_1   P_11          P_21
+        #
+        #                  P
+        #
+        # y_2   P_12          P_22
+
+        point_value_list = []
+
+        for i in range(0,len(point_list)):
+
+            P_x = point_list[i][0]
+            P_y = point_list[i][1]
+
+            # picture features (y,x)
+            P_11 = tuple((math.floor(point_list[i][0]),math.floor(point_list[i][1])))
+            P_21 = tuple((math.ceil(point_list[i][0]),math.floor(point_list[i][1])))
+            P_12 = tuple((math.floor(point_list[i][0]),math.ceil(point_list[i][1])))
+            P_22 = tuple((math.ceil(point_list[i][0]),math.ceil(point_list[i][1])))
+
+            x_1 = math.floor(point_list[i][0])
+            x_2 = math.ceil(point_list[i][0])
+            y_1 = math.floor(point_list[i][1])
+            y_2 = math.ceil(point_list[i][1])
+
+            if ((x_2 - x_1)*(y_2 - y_1)) == 0:
+                point_value_list.append(tuple((P_x, P_y, self.data[point_list[i]][0] * self.elevation_range)))
+            else:
+                # weighted parts
+                w_1 = ( ((x_2 - P_x)*(y_2 - P_y)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_11][0]
+                w_2 = ( ((P_x - x_1)*(y_2 - P_y)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_21][0]
+                w_3 = ( ((x_2 - P_x)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_12][0]
+                w_4 = ( ((P_x - x_1)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_22][0]
+
+                interpolated_height_value = (w_1 + w_2 + w_3 + w_4) * self.elevation_range
+
+                point_value_list.append(tuple((P_x, P_y, interpolated_height_value)))
+
+        point_value_list.append(tuple((end_x, end_y, self.data[tuple((end_x, end_y))][0] * self.elevation_range)))
 
         vector_list = []
-        for i in range(1,len(point_list)):
-            previous = np.array([point_list[i-1]])
-            current = np.array([point_list[i]])
+
+        for i in range(1,len(point_value_list)):
+            previous = np.array([point_value_list[i-1]])
+            current = np.array([point_value_list[i]])
             delta = current-previous
+            delta[0][0] = delta[0][0] * self.pixel_width
+            delta[0][1] = delta[0][1] * self.pixel_width
             vector_list.append(delta[0])
 
+        print(vector_list)
+
         flat_vector_list = []
+
         for i in range(len(vector_list)):
             flat_vector_list.append(np.array((vector_list[i][0],vector_list[i][1])))
 
+
+        # VECTOR NORM
         meter_count = 0
         flat_meter_count = 0
-        for x in range(0,len(vector_list)):
-            meter_count = meter_count + np.linalg.norm(vector_list[x])
-            flat_meter_count = flat_meter_count + np.linalg.norm(flat_vector_list[x])
 
-        flat_length = mp.sqrt(delta_x**2 + delta_y**2) * self.pixel_width
-        circle_segment = self.planet_diameter * mp.asin(flat_length/self.planet_diameter)
-        distortion = mp.mpf((1 - (flat_length/circle_segment)) * 100)
+        for i in range(0,len(vector_list)):
+            meter_count = meter_count + np.linalg.norm(vector_list[i])
+            flat_meter_count = flat_meter_count + np.linalg.norm(flat_vector_list[i])
 
 
-        # CORRECTING EDGE DISTORTION
-        alpha = mp.mpf(mp.atan(delta_y/delta_x))
-        x_calc = mp.mpf(1 - abs(0.0773*mp.sin(-4*alpha))) # curve fitted error correction
-        meter_count = float(mp.mpf(x_calc * meter_count))
-        flat_meter_count = float(mp.mpf(x_calc * flat_meter_count))
+        # CURVATURE DISTORTION
+        circle_segment = self.planet_diameter * mp.asin(flat_length_meter/self.planet_diameter)
+        distortion = mp.mpf((1 - (flat_length_meter/circle_segment)) * 100)
+
 
         # INFO OUTPUT
         print(f'{meter_count:.2f}' + ' m')
-        print('             with ~' + f'{float(distortion):.4f}' + '% curvature distortion (' + f'{float(flat_length):.4f}' + ' m flat vs. ' + f'{float(circle_segment):.4f}' + ' m curved)')
-        edge_distortion = abs((1 - (flat_length/flat_meter_count)) *100)
-        print('             with ~' + f'{float(edge_distortion):.4f}' + '% edge distortion left (' + f'{float(flat_length):.4f}' + ' m flat vs. ' + f'{float(flat_meter_count):.4f}' + ' m calculated flat)')
+        print('             with ~' + f'{float(distortion):.4f}' + '% curvature distortion (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(circle_segment):.4f}' + ' m curved)')
+        edge_distortion = abs((1 - (flat_length_meter/flat_meter_count)) *100)
+        print('             with ~' + f'{float(edge_distortion):.4f}' + '% edge distortion left (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(flat_meter_count):.4f}' + ' m calculated flat)')
 
         self.draw_result_box = self.canvas.create_rectangle(start_x+self.offset_x+(delta_x*0.5)-40, start_y+self.offset_y+(delta_y*0.5)-12, start_x+self.offset_x+(delta_x*0.5)+40, start_y+self.offset_y+(delta_y*0.5)+12, fill='white')
         self.draw_result = self.canvas.create_text(start_x+self.offset_x+(delta_x*0.5), start_y+self.offset_y+(delta_y*0.5),fill="black",font="Arial 12", text=f'{(meter_count/1000):.3f}'+' m')
