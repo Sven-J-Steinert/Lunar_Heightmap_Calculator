@@ -140,7 +140,14 @@ class Window(Frame):
             end_x = x - self.offset_x
             end_y = y - self.offset_y
             if ((start_x != end_x ) and (start_y != end_y )):
-                self.get_line(start_x,start_y,end_x,end_y)
+                # check if its inside the picture dimensions - overflow otherwise
+                max_x = self.data.shape[1]
+                max_y = self.data.shape[0]
+                if (start_x < 0) or (start_y < 0) or (end_x < 0) or (end_y < 0) or (start_x > max_x) or (start_y > max_y) or (end_x > max_x) or (end_y > max_y):
+                    print('ERROR: OUTSIDE OF PICTURE DIMENSIONS')
+                    self.canvas.delete(self.draw_dot_temp)
+                else:
+                    self.get_line(start_x,start_y,end_x,end_y)
                 self.new_dot = True
 
     def get_line(self,start_x,start_y,end_x,end_y):
@@ -182,6 +189,17 @@ class Window(Frame):
         x_step_size = math.sin(alpha) * self.sample_length
         y_step_size = math.cos(alpha) * self.sample_length
 
+        # recover correct direction
+        if delta_x > 0:
+            x_step_size = abs(x_step_size)
+        else:
+            x_step_size = abs(x_step_size) * (-1)
+
+        if delta_y > 0:
+            y_step_size = abs(y_step_size)
+        else:
+            y_step_size = abs(y_step_size) * (-1)
+
 
         print('Step size: ', end=' ')
         print(tuple((x_step_size,y_step_size)))
@@ -195,11 +213,19 @@ class Window(Frame):
         walk_y = start_y
 
         point_list = []
-        point_list.append(tuple((start_x, start_y)))
+        # picture data features (y,x)
+        point_list.append(tuple((start_y, start_x)))
         for i in range(0,steps):
             walk_x = walk_x + x_step_size
             walk_y = walk_y + y_step_size
-            point_list.append(tuple((walk_x, walk_y)))
+            point_list.append(tuple((walk_y, walk_x)))
+
+        point_list.append(tuple((end_y, end_x)))
+
+        # TROUBLESHOOT - CHECKING PATH by writing red line in image data
+        #for i in range(len(point_list)):
+        #    self.display[tuple((int(point_list[i][0]),int(point_list[i][1])))] = tuple((1,0,0))
+        #io.imsave('validate.png', self.display)
 
 
         # BILINEAR INTERPOLATION
@@ -217,7 +243,6 @@ class Window(Frame):
             P_x = point_list[i][0]
             P_y = point_list[i][1]
 
-            # picture features (y,x)
             P_11 = tuple((math.floor(point_list[i][0]),math.floor(point_list[i][1])))
             P_21 = tuple((math.ceil(point_list[i][0]),math.floor(point_list[i][1])))
             P_12 = tuple((math.floor(point_list[i][0]),math.ceil(point_list[i][1])))
@@ -241,8 +266,6 @@ class Window(Frame):
 
                 point_value_list.append(tuple((P_x, P_y, interpolated_height_value)))
 
-        point_value_list.append(tuple((end_x, end_y, self.data[tuple((end_x, end_y))][0] * self.elevation_range)))
-
         vector_list = []
 
         for i in range(1,len(point_value_list)):
@@ -253,7 +276,7 @@ class Window(Frame):
             delta[0][1] = delta[0][1] * self.pixel_width
             vector_list.append(delta[0])
 
-        print(vector_list)
+        #print(vector_list)
 
         flat_vector_list = []
 
