@@ -2,14 +2,13 @@ from skimage import io, img_as_float
 from mpmath import mp
 mp.prec = 100   # precision: 32 digits after zero
 
-
 import math
 import numpy as np
 from PIL import ImageTk,Image
 Image.MAX_IMAGE_PIXELS = 1000000000
 
 from tkinter import *
-
+import json
 # pip install pillow
 from PIL import Image, ImageTk
 
@@ -47,7 +46,9 @@ class Window(Frame):
 
         print('LOADING   ', end='', flush=True)
         URL = 'LDEM_80S_20M_cut.jpg'
-        #URL = 'white.jpg'
+        # http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/JP2/
+        # http://imbrium.mit.edu/BROWSE/LOLA_GDR/POLAR/SOUTH_POLE/
+
 
         raw = io.imread(URL)
         raw = img_as_float(raw)
@@ -172,13 +173,10 @@ class Window(Frame):
         self.draw_dot_1 = self.canvas.create_oval(start_x+self.offset_x+5, start_y+self.offset_y+5, start_x+self.offset_x-5, start_y+self.offset_y-5, fill="#e08616", outline="black")
         self.draw_dot_2 = self.canvas.create_oval(end_x+self.offset_x+5, end_y+self.offset_y+5, end_x+self.offset_x-5, end_y+self.offset_y-5, fill="#e08616", outline="black")
 
-        print('Inputs: ', end=' ')
-        print(tuple((start_x,start_y)) + tuple((end_x,end_y)))
 
         delta_x = end_x - start_x
         delta_y = end_y - start_y
-        print('Delta: ', end=' ')
-        print(tuple((delta_x,delta_y)))
+
 
         # NEW CALCULATION METHOD
 
@@ -200,9 +198,6 @@ class Window(Frame):
         else:
             y_step_size = abs(y_step_size) * (-1)
 
-
-        print('Step size: ', end=' ')
-        print(tuple((x_step_size,y_step_size)))
 
         flat_length = math.sqrt(delta_x**2 + delta_y**2)
         flat_length_meter = math.sqrt((delta_x * self.pixel_width)**2 + (delta_y * self.pixel_width)**2)
@@ -308,22 +303,59 @@ class Window(Frame):
         self.draw_result = self.canvas.create_text(start_x+self.offset_x+(delta_x*0.5), start_y+self.offset_y+(delta_y*0.5),fill="black",font="Arial 12", text=f'{(meter_count/1000):.3f}'+' m')
 
 
-custom_input = input('LOAD preset? No [Yes] ')
-if custom_input == '':
-    custom = False
-else:
-    custom = True
+
+print('┌────────────────────────────────────────────┐')
+print('│                                            │')
+print('│      ██╗  ██╗███████╗██████╗  ██████╗      │')
+print('│      ██║  ██║██╔════╝██╔══██╗██╔════╝      │')
+print('│      ███████║███████╗██║  ██║██║           │')
+print('│      ██╔══██║╚════██║██║  ██║██║           │')
+print('│      ██║  ██║███████║██████╔╝╚██████╗      │')
+print('│      ╚═╝  ╚═╝╚══════╝╚═════╝  ╚═════╝      │')
+print('│                                            │')
+print('│    Heightmap Surface Distance Calculator   │')
+print('└────────────────────────────────────────────┘')
+
+# diameter in [m]  source: https://nssdc.gsfc.nasa.gov/planetary/factsheet/
+planet_database =  {'Sun':   1392700000,
+                    'Mercury':  4879000,
+                    'Venus':   12104000,
+                    'Earth':   12756000,
+                    'Moon':     3475000,
+                    'Mars':     6792000,
+                    'Jupiter':142984000,
+                    'Saturn': 120536000,
+                    'Uranus':  51118000,
+                    'Neptune': 49528000,
+                    'Pluto':    2370000,
+                    }
 
 # HEIGHTMAP PROPERTY SETTINGS
-if custom:
-    planet_diameter =  int(input('          Insert planet diameter [km]: ')) * 1000
+with open('config.json', 'r') as f:
+    config = json.load(f)
+
+print('LOADED preset: ' + str(config))
+
+edit_input = input('EDIT preset? [n]/y: ')
+if edit_input == '' or edit_input == 'n':
+    planet_diameter = planet_database[config['planet']]
+    pixel_width = config['pixel_width']
+    elevation_range = config['elevation_range']
+else:
+    print(tuple(planet_database))
+    planet =  str(input('          Type planet to select: '))
+    planet_diameter = planet_database[planet]
     pixel_width =      int(input('          Insert width of a pixel [m]: '))
     elevation_range =  int(input('          Insert elevation range (lowest to heighest) [km]: ')) * 1000
-else:
-    planet_diameter =  3474800
-    pixel_width =      20
-    elevation_range =  16000
-    print('LOADED    Moon , resolution=20m, elevation_range=16km')
+
+    config['planet'] = planet
+    config['pixel_width'] = pixel_width
+    config['elevation_range'] = elevation_range
+
+    with open('config.json', 'w') as f:
+        json.dump(config, f)
+    print('SAVED preset into config.json')
+
 
 root = Tk()
 app = Window(root, planet_diameter, pixel_width, elevation_range)
