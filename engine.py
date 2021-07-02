@@ -1,3 +1,5 @@
+from os import walk
+from prettytable import *
 from skimage import io, img_as_float
 from mpmath import mp
 mp.prec = 100   # precision: 32 digits after zero
@@ -15,9 +17,7 @@ from PIL import Image, ImageTk
 
 
 class Window(Frame):
-    def __init__(self, master=None, planet_diameter=None, pixel_width=None, elevation_range=None):
-
-        print('WARNING   IMAGE_MAP_PROJECTION not implemented')
+    def __init__(self, master=None, map=None, planet_diameter=None, pixel_width=None, elevation_range=None):
 
         self.planet_diameter = planet_diameter
         self.pixel_width = pixel_width
@@ -45,9 +45,7 @@ class Window(Frame):
 
 
         print('LOADING   ', end='', flush=True)
-        URL = 'LDEM_80S_20M_cut.jpg'
-        # http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/JP2/
-        # http://imbrium.mit.edu/BROWSE/LOLA_GDR/POLAR/SOUTH_POLE/
+        URL = map
 
 
         raw = io.imread(URL)
@@ -316,6 +314,7 @@ print('│                                            │')
 print('│    Heightmap Surface Distance Calculator   │')
 print('└────────────────────────────────────────────┘')
 
+
 # diameter in [m]  source: https://nssdc.gsfc.nasa.gov/planetary/factsheet/
 planet_database =  {'Sun':   1392700000,
                     'Mercury':  4879000,
@@ -338,16 +337,33 @@ print('LOADED preset: ' + str(config))
 
 edit_input = input('EDIT preset? [n]/y: ')
 if edit_input == '' or edit_input == 'n':
+    map = config['map']
     planet_diameter = planet_database[config['planet']]
     pixel_width = config['pixel_width']
     elevation_range = config['elevation_range']
 else:
+    print()
+    map_table = PrettyTable(['AVAILABLE MAPS'])
+    map_table.align['AVAILABLE MAPS'] = 'l'
+    map_table.set_style(DRAWING)
+    f = []
+    for (dirpath, dirnames, filenames) in walk('./'):
+        f.extend(filenames)
+        break
+
+    for file in f:
+        if file[len(file)-4:len(file)] == '.jpg':
+            map_table.add_row([file])
+    print(map_table)
+    map =  str(input('          Select map: '))
+
     print(tuple(planet_database))
     planet =  str(input('          Type planet to select: '))
     planet_diameter = planet_database[planet]
     pixel_width =      int(input('          Insert width of a pixel [m]: '))
     elevation_range =  int(input('          Insert elevation range (lowest to heighest) [km]: ')) * 1000
 
+    config['map'] = map
     config['planet'] = planet
     config['pixel_width'] = pixel_width
     config['elevation_range'] = elevation_range
@@ -358,7 +374,7 @@ else:
 
 
 root = Tk()
-app = Window(root, planet_diameter, pixel_width, elevation_range)
+app = Window(root, map, planet_diameter, pixel_width, elevation_range)
 root.attributes('-fullscreen', True)
 root.wm_title("Tkinter window")
 root.mainloop()
