@@ -1,5 +1,5 @@
 # Heightmap Surface Distance Calculator
-This software can calculate surface distances by a supplied heightmap over bilinear Interpolation.
+This software can calculate surface- and air- distances by a supplied heightmap over bilinear Interpolation.
 Downloader supports Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
 
 ```
