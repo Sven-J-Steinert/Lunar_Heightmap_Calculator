@@ -53,9 +53,8 @@ class Window(Frame):
         self.data = self.im.load()
         print('done.')
 
-        print(self.data[100,100])
 
-        print('CONTRAST  \"display.png\" ', end='', flush=True)
+        print('CONTRAST  \"helper/display.png\" ', end='', flush=True)
         im2 = ImageMath.eval('im/256', {'im':self.im}).convert('L')
         self.zoom = 10
         display = im2.resize(tuple([int(x/self.zoom)  for x in self.im.size]))#.convert('RGB')
@@ -70,19 +69,19 @@ class Window(Frame):
         im_edit = cm_hot(im_edit)
         im_edit = np.uint8(im_edit * 255)
         im_edit = Image.fromarray(im_edit)
-        im_edit.save('display.png')
+        im_edit.save('helper/display.png')
         print('done.')
 
-        self.canvas.image = ImageTk.PhotoImage(Image.open('display.png'))
+        self.canvas.image = ImageTk.PhotoImage(Image.open('helper/display.png'))
         self.display_image = self.canvas.create_image((0,0), image=self.canvas.image, anchor='nw')
 
         legend_array = [range(0,255)]*20
         im_legend = cm_hot(legend_array)
         im_legend = np.uint8(im_legend * 255)
         im_legend = Image.fromarray(im_legend)
-        im_legend.save('legend.png')
+        im_legend.save('helper/legend.png')
 
-        self.canvas.legend = ImageTk.PhotoImage(Image.open('legend.png'))
+        self.canvas.legend = ImageTk.PhotoImage(Image.open('helper/legend.png'))
         self.display_legend = self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20, image=self.canvas.legend, anchor='se')
 
         self.draw_line = None
@@ -349,7 +348,7 @@ planet_database =  {'Sun':   1392700000,
                     }
 
 # HEIGHTMAP PROPERTY SETTINGS
-with open('config.json', 'r') as f:
+with open('helper/config.json', 'r') as f:
     config = json.load(f)
 
 print('LOADED preset: ' + str(config))
@@ -366,7 +365,7 @@ else:
     map_table.align['AVAILABLE MAPS'] = 'l'
     map_table.set_style(DRAWING)
     f = []
-    for (dirpath, dirnames, filenames) in walk('./'):
+    for (dirpath, dirnames, filenames) in walk('./maps'):
         f.extend(filenames)
         break
 
@@ -387,13 +386,13 @@ else:
     config['pixel_width'] = pixel_width
     config['elevation_range'] = elevation_range
 
-    with open('config.json', 'w') as f:
+    with open('helper/config.json', 'w') as f:
         json.dump(config, f)
-    print('SAVED preset into config.json')
+    print('SAVED preset into helper/config.json')
 
 
 root = Tk()
-app = Window(root, map, planet_diameter, pixel_width, elevation_range)
+app = Window(root, 'maps/'+map, planet_diameter, pixel_width, elevation_range)
 root.attributes('-fullscreen', True)
 root.wm_title("Tkinter window")
 root.mainloop()
