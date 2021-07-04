@@ -1,6 +1,6 @@
 from os import walk
 from prettytable import *
-from skimage import io, img_as_float
+from skimage import io, img_as_float32
 from mpmath import mp
 mp.prec = 100   # precision: 32 digits after zero
 
@@ -12,7 +12,11 @@ Image.MAX_IMAGE_PIXELS = 1000000000
 from tkinter import *
 import json
 # pip install pillow
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageMath
+
+
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 
 
@@ -39,32 +43,47 @@ class Window(Frame):
         master.bind("s",self.go_bottom)
         master.bind("d",self.go_right)
 
-        self.canvas = Canvas(self, width=800, height=800, bg='yellow')
+        self.canvas = Canvas(self, width=800, height=800, bg='grey')
         self.canvas.pack(fill=BOTH, expand=1)
         self.pack(fill=BOTH, expand=1)
 
 
-        print('LOADING   ', end='', flush=True)
-        URL = map
+        print('LOADING   \"' + map + '\" ', end='', flush=True)
+        self.im = Image.open(map)
+        self.data = self.im.load()
+        print('done.')
 
+        print(self.data[100,100])
 
-        raw = io.imread(URL)
-        raw = img_as_float(raw)
-        self.data = raw
-        print('done. \"' + URL + '\" ' + str(self.data.shape)  + ' min: ' + str(np.min(self.data)) + '  max: ' + str(np.max(self.data)))
+        print('CONTRAST  \"display.png\" ', end='', flush=True)
+        im2 = ImageMath.eval('im/256', {'im':self.im}).convert('L')
+        self.zoom = 10
+        display = im2.resize(tuple([int(x/self.zoom)  for x in self.im.size]))#.convert('RGB')
+        display_edit = display.load()
+        display_edit_min, display_edit_max = display.getextrema()
+        for y in range(0,display.size[1]):
+            for x in range(0,display.size[0]):
+                display_edit[x,y] = int(((display_edit[x,y] - display_edit_min) / (display_edit_max - display_edit_min))*255)
+        cm_hot = mpl.cm.get_cmap('magma')
+        #cm_hot = mpl.cm.get_cmap('inferno')
+        im_edit = np.array(display)
+        im_edit = cm_hot(im_edit)
+        im_edit = np.uint8(im_edit * 255)
+        im_edit = Image.fromarray(im_edit)
+        im_edit.save('display.png')
+        print('done.')
 
-        print('CONTRAST  ', end='', flush=True)
-        raw = raw - np.min(raw)
-        raw = raw / np.max(raw)
-        self.display = raw
-
-        io.imsave('display.png', (self.display*255).astype(np.uint8))
-        print('done. \"' + URL + '\" ' + str(self.display.shape)  + ' min: ' + str(np.min(self.display)) + '  max: ' + str(np.max(self.display)))
-
-
-        im = Image.open('display.png')
-        self.canvas.image = ImageTk.PhotoImage(im)
+        self.canvas.image = ImageTk.PhotoImage(Image.open('display.png'))
         self.display_image = self.canvas.create_image((0,0), image=self.canvas.image, anchor='nw')
+
+        legend_array = [range(0,255)]*20
+        im_legend = cm_hot(legend_array)
+        im_legend = np.uint8(im_legend * 255)
+        im_legend = Image.fromarray(im_legend)
+        im_legend.save('legend.png')
+
+        self.canvas.legend = ImageTk.PhotoImage(Image.open('legend.png'))
+        self.display_legend = self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20, image=self.canvas.legend, anchor='se')
 
         self.draw_line = None
         self.draw_result_box = None
@@ -140,8 +159,8 @@ class Window(Frame):
             end_y = y - self.offset_y
             if ((start_x != end_x ) and (start_y != end_y )):
                 # check if its inside the picture dimensions - overflow otherwise
-                max_x = self.data.shape[1]
-                max_y = self.data.shape[0]
+                max_y, max_x = self.im.size
+
                 if (start_x < 0) or (start_y < 0) or (end_x < 0) or (end_y < 0) or (start_x > max_x) or (start_y > max_y) or (end_x > max_x) or (end_y > max_y):
                     print('ERROR: OUTSIDE OF PICTURE DIMENSIONS')
                     self.canvas.delete(self.draw_dot_temp)
@@ -247,15 +266,15 @@ class Window(Frame):
             y_2 = math.ceil(point_list[i][1])
 
             if ((x_2 - x_1)*(y_2 - y_1)) == 0:
-                point_value_list.append(tuple((P_x, P_y, self.data[point_list[i]][0] * self.elevation_range)))
+                point_value_list.append(tuple((P_x, P_y, (self.data[point_list[i]] / 65535)  * self.elevation_range)))
             else:
                 # weighted parts
-                w_1 = ( ((x_2 - P_x)*(y_2 - P_y)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_11][0]
-                w_2 = ( ((P_x - x_1)*(y_2 - P_y)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_21][0]
-                w_3 = ( ((x_2 - P_x)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_12][0]
-                w_4 = ( ((P_x - x_1)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_22][0]
+                w_1 = ( ((x_2 - P_x)*(y_2 - P_y)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_11]
+                w_2 = ( ((P_x - x_1)*(y_2 - P_y)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_21]
+                w_3 = ( ((x_2 - P_x)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_12]
+                w_4 = ( ((P_x - x_1)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_22]
 
-                interpolated_height_value = (w_1 + w_2 + w_3 + w_4) * self.elevation_range
+                interpolated_height_value = ((w_1 + w_2 + w_3 + w_4)/65535 ) * self.elevation_range
 
                 point_value_list.append(tuple((P_x, P_y, interpolated_height_value)))
 
@@ -352,7 +371,7 @@ else:
         break
 
     for file in f:
-        if file[len(file)-4:len(file)] == '.jpg':
+        if file[len(file)-4:len(file)] == '.png':
             map_table.add_row([file])
     print(map_table)
     map =  str(input('          Select map: '))
