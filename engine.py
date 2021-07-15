@@ -1,18 +1,22 @@
-from os import walk
+from bs4 import BeautifulSoup
+import requests
+import sys
 from prettytable import *
+import os
+from os import walk
+
 from skimage import io, img_as_float32
 from mpmath import mp
 mp.prec = 100   # precision: 32 digits after zero
 
 import math
 import numpy as np
-from PIL import ImageTk,Image
-Image.MAX_IMAGE_PIXELS = 1000000000
 
 from tkinter import *
 import json
 # pip install pillow
 from PIL import Image, ImageTk, ImageMath
+Image.MAX_IMAGE_PIXELS = 1000000000
 
 
 import matplotlib.pyplot as plt
@@ -56,7 +60,8 @@ class Window(Frame):
 
         print('CONTRAST  \"helper/display.png\" ', end='', flush=True)
         im2 = ImageMath.eval('im/256', {'im':self.im}).convert('L')
-        self.zoom = 10
+        self.zoom = 2
+        #self.zoom = 10
         display = im2.resize(tuple([int(x/self.zoom)  for x in self.im.size]))#.convert('RGB')
         display_edit = display.load()
         display_edit_min, display_edit_max = display.getextrema()
@@ -64,6 +69,7 @@ class Window(Frame):
             for x in range(0,display.size[0]):
                 display_edit[x,y] = int(((display_edit[x,y] - display_edit_min) / (display_edit_max - display_edit_min))*255)
         cm_hot = mpl.cm.get_cmap('magma')
+        #cm_hot = mpl.cm.get_cmap('plasma')
         #cm_hot = mpl.cm.get_cmap('inferno')
         im_edit = np.array(display)
         im_edit = cm_hot(im_edit)
@@ -81,8 +87,30 @@ class Window(Frame):
         im_legend = Image.fromarray(im_legend)
         im_legend.save('helper/legend.png')
 
+        self.font = 'Arial 12'
+
         self.canvas.legend = ImageTk.PhotoImage(Image.open('helper/legend.png'))
-        self.display_legend = self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20, image=self.canvas.legend, anchor='se')
+        self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20, image=self.canvas.legend, anchor='se')
+
+        self.canvas.create_line(root.winfo_screenwidth()-19,root.winfo_screenheight()-67, root.winfo_screenwidth()-19,root.winfo_screenheight()-20, fill="white",  width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-20,root.winfo_screenheight()-47, root.winfo_screenwidth()-70,root.winfo_screenheight()-67, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-45,root.winfo_screenheight()-57,fill="black", font=self.font,
+                        text=str(int(self.elevation_range/1000))+' km', anchor='center')
+
+        self.canvas.create_line(root.winfo_screenwidth()-275,root.winfo_screenheight()-67, root.winfo_screenwidth()-275,root.winfo_screenheight()-20, fill="white",  width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-259,root.winfo_screenheight()-47, root.winfo_screenwidth()-275,root.winfo_screenheight()-67, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-267,root.winfo_screenheight()-57,fill="black", font=self.font,
+                        text='0', anchor='center')
+
+        self.canvas.create_line(root.winfo_screenwidth()-20,root.winfo_screenheight()-95, root.winfo_screenwidth()-120, root.winfo_screenheight()-95, fill="white",  width=2)
+        self.canvas.create_line(root.winfo_screenwidth()-20,root.winfo_screenheight()-90, root.winfo_screenwidth()-20, root.winfo_screenheight()-100, fill="white",  width=2)
+        self.canvas.create_line(root.winfo_screenwidth()-120,root.winfo_screenheight()-90, root.winfo_screenwidth()-120, root.winfo_screenheight()-100, fill="white", width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-35,root.winfo_screenheight()-100, root.winfo_screenwidth()-105,root.winfo_screenheight()-120, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-70,root.winfo_screenheight()-110,fill="black", font=self.font,
+                        text=str('{0:.4g}'.format((self.pixel_width*100*self.zoom)/1000))+' km', anchor='center')
+
+
+
 
         self.draw_line = None
         self.draw_result_box = None
@@ -151,7 +179,7 @@ class Window(Frame):
         if self.new_dot:
             start_x = x - self.offset_x
             start_y = y - self.offset_y
-            self.draw_dot_temp = self.canvas.create_oval(x+5, y+5, x-5, y-5, fill="#e08616", outline="black")
+            self.draw_dot_temp = self.canvas.create_oval(x+5, y+5, x-5, y-5, fill="white", outline="black")
             self.new_dot = False
         else:
             end_x = x - self.offset_x
@@ -185,14 +213,26 @@ class Window(Frame):
             self.canvas.delete(self.draw_dot_temp)
 
 
-        self.draw_line = self.canvas.create_line(start_x+self.offset_x, start_y+self.offset_y, end_x+self.offset_x, end_y+self.offset_y, fill="#f09c35", width=4)
-        self.draw_dot_1 = self.canvas.create_oval(start_x+self.offset_x+5, start_y+self.offset_y+5, start_x+self.offset_x-5, start_y+self.offset_y-5, fill="#e08616", outline="black")
-        self.draw_dot_2 = self.canvas.create_oval(end_x+self.offset_x+5, end_y+self.offset_y+5, end_x+self.offset_x-5, end_y+self.offset_y-5, fill="#e08616", outline="black")
+        self.draw_line = self.canvas.create_line(start_x+self.offset_x, start_y+self.offset_y, end_x+self.offset_x, end_y+self.offset_y, fill="#000", width=3)
 
+        self.draw_dot_1 = self.canvas.create_oval(start_x+self.offset_x+5, start_y+self.offset_y+5, start_x+self.offset_x-5, start_y+self.offset_y-5, fill="white", outline="black")
+        self.draw_dot_2 = self.canvas.create_oval(end_x+self.offset_x+5, end_y+self.offset_y+5, end_x+self.offset_x-5, end_y+self.offset_y-5, fill="white", outline="black")
+
+        start_x_display = start_x
+        start_y_display = start_y
+        end_x_display = end_x
+        end_y_display = end_y
+        delta_x_display = end_x_display - start_x_display
+        delta_y_display = end_y_display - start_y_display
+
+        # adjust for zoom
+        start_x = start_x_display * self.zoom
+        start_y = start_y_display * self.zoom
+        end_x = end_x_display * self.zoom
+        end_y = end_y_display * self.zoom
 
         delta_x = end_x - start_x
         delta_y = end_y - start_y
-
 
         # NEW CALCULATION METHOD
 
@@ -315,8 +355,8 @@ class Window(Frame):
         edge_distortion = abs((1 - (flat_length_meter/flat_meter_count)) *100)
         print('             with ~' + f'{float(edge_distortion):.4f}' + '% edge distortion left (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(flat_meter_count):.4f}' + ' m calculated flat)')
 
-        self.draw_result_box = self.canvas.create_rectangle(start_x+self.offset_x+(delta_x*0.5)-40, start_y+self.offset_y+(delta_y*0.5)-12, start_x+self.offset_x+(delta_x*0.5)+40, start_y+self.offset_y+(delta_y*0.5)+12, fill='white')
-        self.draw_result = self.canvas.create_text(start_x+self.offset_x+(delta_x*0.5), start_y+self.offset_y+(delta_y*0.5),fill="black",font="Arial 12", text=f'{(meter_count/1000):.3f}'+' m')
+        self.draw_result_box = self.canvas.create_rectangle(start_x_display+self.offset_x+(delta_x_display*0.5)-40, start_y_display+self.offset_y+(delta_y_display*0.5)-12, start_x_display+self.offset_x+(delta_x_display*0.5)+40, start_y_display+self.offset_y+(delta_y_display*0.5)+12, fill='white')
+        self.draw_result = self.canvas.create_text(start_x_display+self.offset_x+(delta_x_display*0.5), start_y_display+self.offset_y+(delta_y_display*0.5),fill="black",font=self.font, text=f'{(meter_count/1000):.3f}'+' m')
 
 
 
@@ -346,6 +386,69 @@ planet_database =  {'Sun':   1392700000,
                     'Neptune': 49528000,
                     'Pluto':    2370000,
                     }
+def download():
+    url = 'http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/JP2/'
+    ext = 'JP2'
+
+    print('Select map of interest')
+    print('Preview: http://imbrium.mit.edu/BROWSE/LOLA_GDR/POLAR/SOUTH_POLE/')
+    print()
+
+    def listFD(url, ext=''):
+        page = requests.get(url).text
+        #print(page)
+        soup = BeautifulSoup(page, 'html.parser')
+        # url + '/' + node.get('href') for node in soup.find_all('a') if node.get('href').endswith(ext)
+        return [ node.get('href') for node in soup.find_all('a') if node.get('href').endswith(ext)]
+
+    table = PrettyTable(['FILE NAMES'])
+    table.align['FILE NAMES'] = 'l'
+    table.set_style(DRAWING)
+
+    for file in listFD(url, ext):
+        if file[0:4] == 'LDEM':
+            table.add_row([file])
+
+    print(table)
+    print()
+    file_name = input('Download File: ')
+
+
+    with open('maps/' + file_name, "wb") as f:
+        print("Downloading %s" % file_name)
+        response = requests.get(url+file_name, stream=True)
+        total_length = response.headers.get('content-length')
+
+        if total_length is None: # no content length header
+            f.write(response.content)
+        else:
+            dl = 0
+            total_length = int(total_length)
+            for data in response.iter_content(chunk_size=4096):
+                dl += len(data)
+                f.write(data)
+                done = int(50 * dl / total_length)
+                sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50-done)) )
+                sys.stdout.write(' ' + "{:.2f}".format(dl/(1024*1024)) + ' MB' + ' / ' + "{:.2f}".format(total_length/(1024*1024)) + ' MB')
+                sys.stdout.flush()
+
+
+    print()
+
+    print('maps/' + file_name, end=' ', flush=True)
+    im = Image.open('maps/' + file_name)
+    print('opened.', end=' ', flush=True)
+    print('converting to .png', end=' ', flush=True)
+    file_name_new = str(file_name[:len(file_name)-4])+'.png'
+    im.save('maps/' + file_name_new)
+    print('saved.')
+    im.close()
+
+    os.remove('maps/' + file_name)
+    print('cleanup: ' + 'maps/' + file_name + ' deleted.')
+    print()
+
+    return file_name_new
 
 # HEIGHTMAP PROPERTY SETTINGS
 with open('helper/config.json', 'r') as f:
@@ -372,8 +475,13 @@ else:
     for file in f:
         if file[len(file)-4:len(file)] == '.png':
             map_table.add_row([file])
+    map_table.add_row(['DOWNLOAD MORE'])
     print(map_table)
-    map =  str(input('          Select map: '))
+    select =  str(input('          Select map: '))
+    if select == 'DOWNLOAD MORE':
+        map = download()
+    else:
+        map = select
 
     print(tuple(planet_database))
     planet =  str(input('          Type planet to select: '))
