@@ -25,7 +25,7 @@ import matplotlib as mpl
 
 
 class Window(Frame):
-    def __init__(self, master=None, map=None, planet_diameter=None, pixel_width=None, elevation_range=None):
+    def __init__(self, master=None, map=None, planet_diameter=None, pixel_width=None, elevation_range=None, restore_session=None):
 
         self.planet_diameter = planet_diameter
         self.pixel_width = pixel_width
@@ -57,39 +57,40 @@ class Window(Frame):
         self.data = self.im.load()
         print('done.')
 
-
-        print('CONTRAST  \"helper/display.png\" ', end='', flush=True)
-        im2 = ImageMath.eval('im/256', {'im':self.im}).convert('L')
         self.zoom = 2
-        #self.zoom = 10
-        display = im2.resize(tuple([int(x/self.zoom)  for x in self.im.size]))#.convert('RGB')
-        display_edit = display.load()
-        display_edit_min, display_edit_max = display.getextrema()
-        for y in range(0,display.size[1]):
-            for x in range(0,display.size[0]):
-                display_edit[x,y] = int(((display_edit[x,y] - display_edit_min) / (display_edit_max - display_edit_min))*255)
-        cm_hot = mpl.cm.get_cmap('magma')
-        #cm_hot = mpl.cm.get_cmap('plasma')
-        #cm_hot = mpl.cm.get_cmap('inferno')
-        im_edit = np.array(display)
-        im_edit = cm_hot(im_edit)
-        im_edit = np.uint8(im_edit * 255)
-        im_edit = Image.fromarray(im_edit)
-        im_edit.save('helper/display.png')
-        print('done.')
 
-        self.canvas.image = ImageTk.PhotoImage(Image.open('helper/display.png'))
+        if not restore_session:
+            print('CONTRAST  \"session/display.png\" ', end='', flush=True)
+            im2 = ImageMath.eval('im/256', {'im':self.im}).convert('L')
+
+            display = im2.resize(tuple([int(x/self.zoom)  for x in self.im.size]))#.convert('RGB')
+            display_edit = display.load()
+            display_edit_min, display_edit_max = display.getextrema()
+            for y in range(0,display.size[1]):
+                for x in range(0,display.size[0]):
+                    display_edit[x,y] = int(((display_edit[x,y] - display_edit_min) / (display_edit_max - display_edit_min))*255)
+            cm_hot = mpl.cm.get_cmap('magma')
+            #cm_hot = mpl.cm.get_cmap('plasma')
+            #cm_hot = mpl.cm.get_cmap('inferno')
+            im_edit = np.array(display)
+            im_edit = cm_hot(im_edit)
+            im_edit = np.uint8(im_edit * 255)
+            im_edit = Image.fromarray(im_edit)
+            im_edit.save('session/display.png')
+            print('done.')
+
+            legend_array = [range(0,255)]*20
+            im_legend = cm_hot(legend_array)
+            im_legend = np.uint8(im_legend * 255)
+            im_legend = Image.fromarray(im_legend)
+            im_legend.save('session/legend.png')
+
+        self.canvas.image = ImageTk.PhotoImage(Image.open('session/display.png'))
         self.display_image = self.canvas.create_image((0,0), image=self.canvas.image, anchor='nw')
-
-        legend_array = [range(0,255)]*20
-        im_legend = cm_hot(legend_array)
-        im_legend = np.uint8(im_legend * 255)
-        im_legend = Image.fromarray(im_legend)
-        im_legend.save('helper/legend.png')
 
         self.font = 'Arial 12'
 
-        self.canvas.legend = ImageTk.PhotoImage(Image.open('helper/legend.png'))
+        self.canvas.legend = ImageTk.PhotoImage(Image.open('session/legend.png'))
         self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20, image=self.canvas.legend, anchor='se')
 
         self.canvas.create_line(root.winfo_screenwidth()-19,root.winfo_screenheight()-67, root.winfo_screenwidth()-19,root.winfo_screenheight()-20, fill="white",  width=2)
@@ -186,9 +187,9 @@ class Window(Frame):
             end_y = y - self.offset_y
             if ((start_x != end_x ) and (start_y != end_y )):
                 # check if its inside the picture dimensions - overflow otherwise
-                max_y, max_x = self.im.size
+                max_x, max_y = self.im.size
 
-                if (start_x < 0) or (start_y < 0) or (end_x < 0) or (end_y < 0) or (start_x > max_x) or (start_y > max_y) or (end_x > max_x) or (end_y > max_y):
+                if (start_x*self.zoom < 0) or (start_y*self.zoom < 0) or (end_x*self.zoom < 0) or (end_y*self.zoom < 0) or (start_x*self.zoom > max_x) or (start_y*self.zoom > max_y) or (end_x*self.zoom > max_x) or (end_y*self.zoom > max_y):
                     print('ERROR: OUTSIDE OF PICTURE DIMENSIONS')
                     self.canvas.delete(self.draw_dot_temp)
                 else:
@@ -213,7 +214,7 @@ class Window(Frame):
             self.canvas.delete(self.draw_dot_temp)
 
 
-        self.draw_line = self.canvas.create_line(start_x+self.offset_x, start_y+self.offset_y, end_x+self.offset_x, end_y+self.offset_y, fill="#000", width=3)
+        self.draw_line = self.canvas.create_line(start_x+self.offset_x, start_y+self.offset_y, end_x+self.offset_x, end_y+self.offset_y, fill="white", width=3)
 
         self.draw_dot_1 = self.canvas.create_oval(start_x+self.offset_x+5, start_y+self.offset_y+5, start_x+self.offset_x-5, start_y+self.offset_y-5, fill="white", outline="black")
         self.draw_dot_2 = self.canvas.create_oval(end_x+self.offset_x+5, end_y+self.offset_y+5, end_x+self.offset_x-5, end_y+self.offset_y-5, fill="white", outline="black")
@@ -265,18 +266,26 @@ class Window(Frame):
 
         point_list = []
         # picture data features (y,x)
-        point_list.append(tuple((start_y, start_x)))
+        point_list.append(tuple((start_x, start_y)))
         for i in range(0,steps):
             walk_x = walk_x + x_step_size
             walk_y = walk_y + y_step_size
-            point_list.append(tuple((walk_y, walk_x)))
+            point_list.append(tuple((walk_x, walk_y)))
 
-        point_list.append(tuple((end_y, end_x)))
+        point_list.append(tuple((end_x, end_y)))
 
         # TROUBLESHOOT - CHECKING PATH by writing red line in image data
         #for i in range(len(point_list)):
         #    self.display[tuple((int(point_list[i][0]),int(point_list[i][1])))] = tuple((1,0,0))
         #io.imsave('validate.png', self.display)
+
+        self.max_pixel_value = 65535 # 16-bit unsigned integer
+
+        print(self.data[tuple((start_x, start_y))], end=' ')
+        print(self.data[tuple((start_x, start_y))]/self.max_pixel_value)
+        print(self.data[tuple((end_x, end_y))], end=' ')
+        print(self.data[tuple((end_x, end_y))]/self.max_pixel_value)
+        print()
 
 
         # BILINEAR INTERPOLATION
@@ -305,7 +314,7 @@ class Window(Frame):
             y_2 = math.ceil(point_list[i][1])
 
             if ((x_2 - x_1)*(y_2 - y_1)) == 0:
-                point_value_list.append(tuple((P_x, P_y, (self.data[point_list[i]] / 65535)  * self.elevation_range)))
+                point_value_list.append(tuple((P_x, P_y, (self.data[point_list[i]] / self.max_pixel_value)  * self.elevation_range)))
             else:
                 # weighted parts
                 w_1 = ( ((x_2 - P_x)*(y_2 - P_y)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_11]
@@ -313,7 +322,7 @@ class Window(Frame):
                 w_3 = ( ((x_2 - P_x)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_12]
                 w_4 = ( ((P_x - x_1)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_22]
 
-                interpolated_height_value = ((w_1 + w_2 + w_3 + w_4)/65535 ) * self.elevation_range
+                interpolated_height_value = ((w_1 + w_2 + w_3 + w_4)/self.max_pixel_value ) * self.elevation_range
 
                 point_value_list.append(tuple((P_x, P_y, interpolated_height_value)))
 
@@ -452,18 +461,19 @@ def download():
     return file_name_new
 
 # HEIGHTMAP PROPERTY SETTINGS
-with open('helper/config.json', 'r') as f:
+with open('session/config.json', 'r') as f:
     config = json.load(f)
 
-print('LOADED preset: ' + str(config))
+print('LOADED : ' + str(config))
 
-edit_input = input('EDIT preset? [n]/y: ')
-if edit_input == '' or edit_input == 'n':
+edit_input = input('Restore previous session? n/[y]: ')
+if edit_input == '' or edit_input == 'y':
     map = config['map']
     planet_diameter = planet_database[config['planet']]
     pixel_width = config['pixel_width']
     elevation_range = config['elevation_range']
-else:
+    restore_session = True
+elif edit_input == 'n':
     print()
     map_table = PrettyTable(['AVAILABLE MAPS'])
     map_table.align['AVAILABLE MAPS'] = 'l'
@@ -490,18 +500,21 @@ else:
     pixel_width =      int(input('          Insert width of a pixel [m]: '))
     elevation_range =  int(input('          Insert elevation range (lowest to heighest) [km]: ')) * 1000
 
+    restore_session = False
     config['map'] = map
     config['planet'] = planet
     config['pixel_width'] = pixel_width
     config['elevation_range'] = elevation_range
 
-    with open('helper/config.json', 'w') as f:
+    with open('session/config.json', 'w') as f:
         json.dump(config, f)
-    print('SAVED preset into helper/config.json')
+    print('SAVED preset into session/config.json')
+else:
+    exit(0)
 
 
 root = Tk()
-app = Window(root, 'maps/'+map, planet_diameter, pixel_width, elevation_range)
+app = Window(root, 'maps/'+map, planet_diameter, pixel_width, elevation_range, restore_session)
 root.attributes('-fullscreen', True)
 root.wm_title("Tkinter window")
 root.mainloop()
