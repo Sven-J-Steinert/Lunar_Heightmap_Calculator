@@ -4,8 +4,8 @@ This software can calculate surface- and air- distances by a supplied heightmap 
 Downloader supports Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
 
 ```
-run downloader.py     -> select, download and convert Lunar height maps
-run engine.py         -> select map & analyse and measure on heightmap
+run engine.py         -> select a Lunar height map to automatically download, convert and display
+                      -> analyse and measure on heightmap
 ```
 
 Controls
