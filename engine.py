@@ -296,19 +296,6 @@ class Window(Frame):
 
         point_list.append(tuple((end_x, end_y)))
 
-        # TROUBLESHOOT - CHECKING PATH by writing red line in image data
-        #for i in range(len(point_list)):
-        #    self.display[tuple((int(point_list[i][0]),int(point_list[i][1])))] = tuple((1,0,0))
-        #io.imsave('validate.png', self.display)
-
-        self.max_pixel_value = 65535 # 16-bit unsigned integer
-
-        print(self.data[tuple((start_x, start_y))], end=' ')
-        print(self.data[tuple((start_x, start_y))]/self.max_pixel_value)
-        print(self.data[tuple((end_x, end_y))], end=' ')
-        print(self.data[tuple((end_x, end_y))]/self.max_pixel_value)
-        print()
-
 
         # BILINEAR INTERPOLATION
         #        x_1          x_2
@@ -396,7 +383,7 @@ class Window(Frame):
             point_only_value_list.append(point_value_list[i][2])
 
         height_difference = max(point_only_value_list) - min(point_only_value_list)
-        print(height_difference)
+
         x_plot = np.linspace(0,flat_meter_count,len(point_only_value_list))
 
         fig = plt.figure(figsize=(10, 2), dpi=80)
