@@ -26,11 +26,10 @@ import matplotlib as mpl
 
 
 class Window(Frame):
-    def __init__(self, master=None, map=None, planet_diameter=None, pixel_width=None, elevation_range=None, restore_session=None):
+    def __init__(self, master=None, map=None, pixel_width=None, restore_session=None):
 
-        self.planet_diameter = planet_diameter
         self.pixel_width = pixel_width
-        self.elevation_range =  elevation_range
+
 
         self.offset_x = 0
         self.offset_y = 0
@@ -57,8 +56,12 @@ class Window(Frame):
         self.im = Image.open(map)
         self.data = self.im.load()
         self.data_min, self.data_max = self.im.getextrema()
-        self.scaling_factor = 0.5
-        print(self.im.getextrema())
+        self.reference_offset = 1737400 # from LOLA label
+        self.planet_diameter = (self.reference_offset + self.data_min) * 2
+        self.scaling_factor = 0.5   # from LOLA label
+
+
+        print(self.im.getextrema(), end=' ')
         print('done.')
 
         #self.zoom = 1
@@ -333,7 +336,7 @@ class Window(Frame):
             y_2 = math.ceil(point_list[i][1])
 
             if ((x_2 - x_1)*(y_2 - y_1)) == 0:
-                point_value_list.append(tuple((P_x, P_y, (self.data[point_list[i]] / self.max_pixel_value)  * self.elevation_range)))
+                point_value_list.append(tuple((P_x, P_y, (self.data[point_list[i]]  * self.scaling_factor) )))
             else:
                 # weighted parts
                 w_1 = ( ((x_2 - P_x)*(y_2 - P_y)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_11]
@@ -341,7 +344,7 @@ class Window(Frame):
                 w_3 = ( ((x_2 - P_x)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_12]
                 w_4 = ( ((P_x - x_1)*(P_y - y_1)) / ((x_2 - x_1)*(y_2 - y_1)) ) * self.data[P_22]
 
-                interpolated_height_value = ((w_1 + w_2 + w_3 + w_4)/self.max_pixel_value ) * self.elevation_range
+                interpolated_height_value = (w_1 + w_2 + w_3 + w_4) * self.scaling_factor
 
                 point_value_list.append(tuple((P_x, P_y, interpolated_height_value)))
 
@@ -415,6 +418,11 @@ class Window(Frame):
         self.canvas.height_profile = ImageTk.PhotoImage(Image.open('session/height_profile.png'))
         self.canvas.height_profile_element = self.canvas.create_image(root.winfo_screenwidth()-12,root.winfo_screenheight()-21, image=self.canvas.height_profile, anchor='se')
 
+        self.canvas.create_line(root.winfo_screenwidth()-830,root.winfo_screenheight()-30-162, root.winfo_screenwidth()-818,root.winfo_screenheight()-30-162, fill="white",  width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-818-70,root.winfo_screenheight()-10-163, root.winfo_screenwidth()-822,root.winfo_screenheight()-30-163, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-810-45,root.winfo_screenheight()-20-163,fill="black", font=self.font,
+                        text=f'{height_difference:.0f}' + ' m', anchor='center')
+
         self.canvas.create_line(root.winfo_screenwidth()-818,root.winfo_screenheight()-10, root.winfo_screenwidth()-818,root.winfo_screenheight()-33, fill="white",  width=2)
         self.canvas.create_rectangle(root.winfo_screenwidth()-818,root.winfo_screenheight()-10, root.winfo_screenwidth()-802,root.winfo_screenheight()-30, fill="white", outline='white')
         self.canvas.create_text(root.winfo_screenwidth()-810,root.winfo_screenheight()-20,fill="black", font=self.font,
@@ -438,20 +446,6 @@ print('│    Heightmap Surface Distance Calculator   │   └───┴─�
 print('└────────────────────────────────────────────┘      move map        select points')
 print()
 
-
-# diameter in [m]  source: https://nssdc.gsfc.nasa.gov/planetary/factsheet/
-planet_database =  {'Sun':   1392700000,
-                    'Mercury':  4879000,
-                    'Venus':   12104000,
-                    'Earth':   12756000,
-                    'Moon':     3475000,
-                    'Mars':     6792000,
-                    'Jupiter':142984000,
-                    'Saturn': 120536000,
-                    'Uranus':  51118000,
-                    'Neptune': 49528000,
-                    'Pluto':    2370000,
-                    }
 def download():
     url = 'http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/JP2/'
     ext = 'JP2'
@@ -525,9 +519,7 @@ print('LOADED : ' + str(config))
 edit_input = input('Restore previous session? n/[y]: ')
 if edit_input == '' or edit_input == 'y':
     map = config['map']
-    planet_diameter = planet_database[config['planet']]
     pixel_width = config['pixel_width']
-    elevation_range = config['elevation_range']
     restore_session = True
 elif edit_input == 'n':
     print()
@@ -550,17 +542,11 @@ elif edit_input == 'n':
     else:
         map = select
 
-    print(tuple(planet_database))
-    planet =  str(input('          Type planet to select: '))
-    planet_diameter = planet_database[planet]
     pixel_width =      int(input('          Insert width of a pixel [m]: '))
-    elevation_range =  int(input('          Insert elevation range (lowest to heighest) [km]: ')) * 1000
 
     restore_session = False
     config['map'] = map
-    config['planet'] = planet
     config['pixel_width'] = pixel_width
-    config['elevation_range'] = elevation_range
 
     with open('session/config.json', 'w') as f:
         json.dump(config, f)
@@ -570,7 +556,7 @@ else:
 
 
 root = Tk()
-app = Window(root, 'maps/'+map, planet_diameter, pixel_width, elevation_range, restore_session)
+app = Window(root, 'maps/'+map, pixel_width, restore_session)
 root.attributes('-fullscreen', True)
 root.wm_title("Tkinter window")
 root.mainloop()
