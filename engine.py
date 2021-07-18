@@ -11,6 +11,7 @@ mp.prec = 100   # precision: 32 digits after zero
 
 import math
 import numpy as np
+import matplotlib.pyplot as plt
 
 from tkinter import *
 import json
@@ -55,20 +56,28 @@ class Window(Frame):
         print('LOADING   \"' + map + '\" ', end='', flush=True)
         self.im = Image.open(map)
         self.data = self.im.load()
+        self.data_min, self.data_max = self.im.getextrema()
+        self.scaling_factor = 0.5
+        print(self.im.getextrema())
         print('done.')
 
+        #self.zoom = 1
         self.zoom = 2
 
         if not restore_session:
-            print('CONTRAST  \"session/display.png\" ', end='', flush=True)
+            print('RESIZE    \"session/display.png\" ', end='', flush=True)
             im2 = ImageMath.eval('im/256', {'im':self.im}).convert('L')
 
             display = im2.resize(tuple([int(x/self.zoom)  for x in self.im.size]))#.convert('RGB')
+            print('done.')
+            print('CONTRAST  \"session/display.png\" ', end='', flush=True)
             display_edit = display.load()
             display_edit_min, display_edit_max = display.getextrema()
             for y in range(0,display.size[1]):
                 for x in range(0,display.size[0]):
                     display_edit[x,y] = int(((display_edit[x,y] - display_edit_min) / (display_edit_max - display_edit_min))*255)
+            print('done.')
+            print('COLOUR    \"session/display.png\" ', end='', flush=True)
             cm_hot = mpl.cm.get_cmap('magma')
             #cm_hot = mpl.cm.get_cmap('plasma')
             #cm_hot = mpl.cm.get_cmap('inferno')
@@ -88,26 +97,33 @@ class Window(Frame):
         self.canvas.image = ImageTk.PhotoImage(Image.open('session/display.png'))
         self.display_image = self.canvas.create_image((0,0), image=self.canvas.image, anchor='nw')
 
+        self.display_grid_x = self.canvas.create_line(0,int(self.canvas.image.height()/2), self.canvas.image.width(),int(self.canvas.image.height()/2), fill="black",  width=1)
+        self.display_grid_y = self.canvas.create_line(int(self.canvas.image.width()/2),0, int(self.canvas.image.width()/2),self.canvas.image.height(), fill="black",  width=1)
+
+
+
         self.font = 'Arial 12'
 
         self.canvas.legend = ImageTk.PhotoImage(Image.open('session/legend.png'))
-        self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20, image=self.canvas.legend, anchor='se')
+        self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20-190, image=self.canvas.legend, anchor='se')
 
-        self.canvas.create_line(root.winfo_screenwidth()-19,root.winfo_screenheight()-67, root.winfo_screenwidth()-19,root.winfo_screenheight()-20, fill="white",  width=2)
-        self.canvas.create_rectangle(root.winfo_screenwidth()-20,root.winfo_screenheight()-47, root.winfo_screenwidth()-70,root.winfo_screenheight()-67, fill="white", outline='white')
-        self.canvas.create_text(root.winfo_screenwidth()-45,root.winfo_screenheight()-57,fill="black", font=self.font,
-                        text=str(int(self.elevation_range/1000))+' km', anchor='center')
+        self.canvas.create_line(root.winfo_screenwidth()-19,root.winfo_screenheight()-67-190, root.winfo_screenwidth()-19,root.winfo_screenheight()-20-190, fill="white",  width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-20,root.winfo_screenheight()-47-190, root.winfo_screenwidth()-80,root.winfo_screenheight()-67-190, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-50,root.winfo_screenheight()-57-190,fill="black", font=self.font,
+                        text='{:.1f}'.format(((self.data_max - self.data_min)*self.scaling_factor)/1000)+' km', anchor='center')
 
-        self.canvas.create_line(root.winfo_screenwidth()-275,root.winfo_screenheight()-67, root.winfo_screenwidth()-275,root.winfo_screenheight()-20, fill="white",  width=2)
-        self.canvas.create_rectangle(root.winfo_screenwidth()-259,root.winfo_screenheight()-47, root.winfo_screenwidth()-275,root.winfo_screenheight()-67, fill="white", outline='white')
-        self.canvas.create_text(root.winfo_screenwidth()-267,root.winfo_screenheight()-57,fill="black", font=self.font,
+
+
+        self.canvas.create_line(root.winfo_screenwidth()-275,root.winfo_screenheight()-67-190, root.winfo_screenwidth()-275,root.winfo_screenheight()-20-190, fill="white",  width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-259,root.winfo_screenheight()-47-190, root.winfo_screenwidth()-275,root.winfo_screenheight()-67-190, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-267,root.winfo_screenheight()-57-190,fill="black", font=self.font,
                         text='0', anchor='center')
 
-        self.canvas.create_line(root.winfo_screenwidth()-20,root.winfo_screenheight()-95, root.winfo_screenwidth()-120, root.winfo_screenheight()-95, fill="white",  width=2)
-        self.canvas.create_line(root.winfo_screenwidth()-20,root.winfo_screenheight()-90, root.winfo_screenwidth()-20, root.winfo_screenheight()-100, fill="white",  width=2)
-        self.canvas.create_line(root.winfo_screenwidth()-120,root.winfo_screenheight()-90, root.winfo_screenwidth()-120, root.winfo_screenheight()-100, fill="white", width=2)
-        self.canvas.create_rectangle(root.winfo_screenwidth()-35,root.winfo_screenheight()-100, root.winfo_screenwidth()-105,root.winfo_screenheight()-120, fill="white", outline='white')
-        self.canvas.create_text(root.winfo_screenwidth()-70,root.winfo_screenheight()-110,fill="black", font=self.font,
+        self.canvas.create_line(root.winfo_screenwidth()-20,root.winfo_screenheight()-95-190, root.winfo_screenwidth()-120, root.winfo_screenheight()-95-190, fill="white",  width=2)
+        self.canvas.create_line(root.winfo_screenwidth()-20,root.winfo_screenheight()-90-190, root.winfo_screenwidth()-20, root.winfo_screenheight()-100-190, fill="white",  width=2)
+        self.canvas.create_line(root.winfo_screenwidth()-120,root.winfo_screenheight()-90-190, root.winfo_screenwidth()-120, root.winfo_screenheight()-100-190, fill="white", width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-35,root.winfo_screenheight()-100-190, root.winfo_screenwidth()-105,root.winfo_screenheight()-120-190, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-70,root.winfo_screenheight()-110-190,fill="black", font=self.font,
                         text=str('{0:.4g}'.format((self.pixel_width*100*self.zoom)/1000))+' km', anchor='center')
 
 
@@ -148,6 +164,9 @@ class Window(Frame):
 
     def move_image(self,x,y):
         self.canvas.move(self.display_image, x, y)
+        self.canvas.move(self.display_grid_x, x, y)
+        self.canvas.move(self.display_grid_y, x, y)
+
         if self.draw_dot_temp:
             self.canvas.move(self.draw_dot_temp, x, y)
         if self.draw_line:
@@ -367,7 +386,44 @@ class Window(Frame):
         self.draw_result_box = self.canvas.create_rectangle(start_x_display+self.offset_x+(delta_x_display*0.5)-40, start_y_display+self.offset_y+(delta_y_display*0.5)-12, start_x_display+self.offset_x+(delta_x_display*0.5)+40, start_y_display+self.offset_y+(delta_y_display*0.5)+12, fill='white')
         self.draw_result = self.canvas.create_text(start_x_display+self.offset_x+(delta_x_display*0.5), start_y_display+self.offset_y+(delta_y_display*0.5),fill="black",font=self.font, text=f'{(meter_count/1000):.3f}'+' m')
 
+        # height profile plot
 
+        point_only_value_list = []
+        for i in range(0,len(point_value_list)):
+            point_only_value_list.append(point_value_list[i][2])
+
+        height_difference = max(point_only_value_list) - min(point_only_value_list)
+        print(height_difference)
+        x_plot = np.linspace(0,flat_meter_count,len(point_only_value_list))
+
+        fig = plt.figure(figsize=(10, 2), dpi=80)
+        ax = plt.axes()
+        ax.plot(x_plot, point_only_value_list,'w')
+        #plt.gca().set_axis_off()
+        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0,
+                    hspace = 0, wspace = 0)
+        plt.margins(0,0.01)
+        plt.gca().xaxis.set_major_locator(plt.NullLocator())
+        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+        ax.spines['bottom'].set_color('white')
+        ax.spines['top'].set_color('white')
+        ax.spines['right'].set_color('white')
+        ax.spines['left'].set_color('white')
+        fig.savefig("session/height_profile.png", transparent=True,  bbox_inches = 'tight')
+        plt.close()
+
+        self.canvas.height_profile = ImageTk.PhotoImage(Image.open('session/height_profile.png'))
+        self.canvas.height_profile_element = self.canvas.create_image(root.winfo_screenwidth()-12,root.winfo_screenheight()-21, image=self.canvas.height_profile, anchor='se')
+
+        self.canvas.create_line(root.winfo_screenwidth()-818,root.winfo_screenheight()-10, root.winfo_screenwidth()-818,root.winfo_screenheight()-33, fill="white",  width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-818,root.winfo_screenheight()-10, root.winfo_screenwidth()-802,root.winfo_screenheight()-30, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-810,root.winfo_screenheight()-20,fill="black", font=self.font,
+                        text='0', anchor='center')
+
+        self.canvas.create_line(root.winfo_screenwidth()-19,root.winfo_screenheight()-10, root.winfo_screenwidth()-19,root.winfo_screenheight()-33, fill="white",  width=2)
+        self.canvas.create_rectangle(root.winfo_screenwidth()-100,root.winfo_screenheight()-10, root.winfo_screenwidth()-20,root.winfo_screenheight()-30, fill="white", outline='white')
+        self.canvas.create_text(root.winfo_screenwidth()-22,root.winfo_screenheight()-10,fill="black", font=self.font,
+                        text=f'{float(flat_length_meter/1000):.3f}' + ' m', anchor='se')
 
 print('┌────────────────────────────────────────────┐')
 print('│                                            │               Controls')
