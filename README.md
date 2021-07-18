@@ -4,6 +4,7 @@ Features
 * air-distance calculation
 * height profile plotting
 * heightmap contrast colouring
+* map downloader
 
 Downloader supports Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
 
