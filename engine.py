@@ -387,7 +387,7 @@ class Window(Frame):
         print('             with ~' + f'{float(edge_distortion):.4f}' + '% edge distortion left (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(flat_meter_count):.4f}' + ' m calculated flat)')
 
         self.draw_result_box = self.canvas.create_rectangle(start_x_display+self.offset_x+(delta_x_display*0.5)-40, start_y_display+self.offset_y+(delta_y_display*0.5)-12, start_x_display+self.offset_x+(delta_x_display*0.5)+40, start_y_display+self.offset_y+(delta_y_display*0.5)+12, fill='white')
-        self.draw_result = self.canvas.create_text(start_x_display+self.offset_x+(delta_x_display*0.5), start_y_display+self.offset_y+(delta_y_display*0.5),fill="black",font=self.font, text=f'{(meter_count/1000):.3f}'+' m')
+        self.draw_result = self.canvas.create_text(start_x_display+self.offset_x+(delta_x_display*0.5), start_y_display+self.offset_y+(delta_y_display*0.5),fill="black",font=self.font, text=f'{(meter_count):,.0f}'+' m')
 
         # height profile plot
 
@@ -431,7 +431,7 @@ class Window(Frame):
         self.canvas.create_line(root.winfo_screenwidth()-19,root.winfo_screenheight()-10, root.winfo_screenwidth()-19,root.winfo_screenheight()-33, fill="white",  width=2)
         self.canvas.create_rectangle(root.winfo_screenwidth()-100,root.winfo_screenheight()-10, root.winfo_screenwidth()-20,root.winfo_screenheight()-30, fill="white", outline='white')
         self.canvas.create_text(root.winfo_screenwidth()-22,root.winfo_screenheight()-10,fill="black", font=self.font,
-                        text=f'{float(flat_length_meter/1000):.3f}' + ' m', anchor='se')
+                        text=f'{float(flat_length_meter):,.0f}' + ' m', anchor='se')
 
 print('┌────────────────────────────────────────────┐')
 print('│                                            │               Controls')
