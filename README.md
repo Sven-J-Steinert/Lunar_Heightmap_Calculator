@@ -1,5 +1,9 @@
 # Heightmap Surface Distance Calculator
-This software can calculate surface- and air- distances by a supplied heightmap over bilinear Interpolation.
+Features
+* Surface-Distance calculation
+* Air-Distance calculation
+* height profile plotting
+* heightmap contrast colouring
 
 Downloader supports Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
 
