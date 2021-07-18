@@ -1,7 +1,7 @@
 # Heightmap Surface Distance Calculator
 Features
-* Surface-Distance calculation
-* Air-Distance calculation
+* surface-distance calculation
+* air-distance calculation
 * height profile plotting
 * heightmap contrast colouring
 
