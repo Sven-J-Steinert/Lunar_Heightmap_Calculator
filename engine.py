@@ -5,6 +5,9 @@ from prettytable import *
 import os
 from os import walk
 
+import subprocess
+import PIL.ImageGrab as ImageGrab
+
 from skimage import io, img_as_float32
 from mpmath import mp
 mp.prec = 100   # precision: 32 digits after zero
@@ -14,6 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tkinter import *
+
 import json
 # pip install pillow
 from PIL import Image, ImageTk, ImageMath
@@ -42,6 +46,10 @@ class Window(Frame):
         master.bind('<B3-Motion>', self.right_click_drag)
         master.bind("<Button 3>",self.right_click)
 
+        master.bind("q",self.recenter)
+        master.bind("e",self.save_png)
+        master.bind("c",self.crop_map)
+
         master.bind("w",self.go_top)
         master.bind("a",self.go_left)
         master.bind("s",self.go_bottom)
@@ -64,8 +72,8 @@ class Window(Frame):
         print(self.im.getextrema(), end=' ')
         print('done.')
 
-        #self.zoom = 1
-        self.zoom = 2
+        self.zoom = 1
+        #self.zoom = 2
 
         if not restore_session:
             print('RESIZE    \"session/display.png\" ', end='', flush=True)
@@ -140,6 +148,14 @@ class Window(Frame):
         self.draw_dot_temp = None
 
         self.new_dot = True
+        self.crop_mode = False
+
+        # jump to center
+        self.center_x = int(self.canvas.image.width()/2) - int(root.winfo_screenwidth()/2)
+        self.center_y = int(self.canvas.image.height()/2) - int(root.winfo_screenheight()/2)
+        self.offset_x = -self.center_x
+        self.offset_y = -self.center_y
+        self.move_image(-self.center_x,-self.center_y)
 
     def right_click_drag(self,event):
         delta_x = self.old_drag_x - event.x
@@ -147,6 +163,23 @@ class Window(Frame):
         self.move_image(-delta_x,-delta_y)
         self.old_drag_x = event.x
         self.old_drag_y = event.y
+
+    def save_png(self,event):
+        print(tuple((root.winfo_screenwidth(),root.winfo_screenheight())))
+        ImageGrab.grab(bbox=(0, 0, root.winfo_screenwidth(), root.winfo_screenheight())).save("screenshot.png")
+        print('screenshot.png saved.')
+
+    def recenter(self,event):
+        move_x = -(self.offset_x + self.center_x)
+        move_y = -(self.offset_y + self.center_y)
+        self.offset_x = self.offset_x + move_x
+        self.offset_y = self.offset_y + move_y
+        self.move_image(move_x,move_y)
+
+    def crop_map(self,event):
+        print('select rectangle')
+        self.crop_mode = True
+
 
     def go_left(self,event):
         self.offset_x = self.offset_x + 200
@@ -188,12 +221,30 @@ class Window(Frame):
           global x,y
           x = content.x
           y = content.y
-          self.calc_line(x,y)
+          print(tuple((x,y)))
+          if self.crop_mode:
+              self.calc_crop(x,y)
+          else:
+              self.calc_line(x,y)
 
 
     def right_click(self,event):
           self.old_drag_x = event.x
           self.old_drag_y = event.y
+
+    def calc_crop(self,x,y):
+        global start_x, start_y
+
+        if self.new_dot:
+            start_x = x - self.offset_x
+            start_y = y - self.offset_y
+            self.new_dot = False
+        else:
+            print('Second crop click')
+            end_x = x - self.offset_x
+            end_y = y - self.offset_y
+            self.draw_rectangle = self.canvas.create_rectangle(start_x, start_y, end_x, end_y, fill="black", outline="white")
+            self.crop_mode = False
 
     def calc_line(self,x,y):
 
@@ -218,9 +269,7 @@ class Window(Frame):
                     self.get_line(start_x,start_y,end_x,end_y)
                 self.new_dot = True
 
-    def get_line(self,start_x,start_y,end_x,end_y):
-
-
+    def clear_results(self):
 
         if self.draw_line is not None:
             self.canvas.delete(self.draw_line)
@@ -235,6 +284,9 @@ class Window(Frame):
         if self.draw_dot_temp is not None:
             self.canvas.delete(self.draw_dot_temp)
 
+    def get_line(self,start_x,start_y,end_x,end_y):
+
+        self.clear_results()
 
         self.draw_line = self.canvas.create_line(start_x+self.offset_x, start_y+self.offset_y, end_x+self.offset_x, end_y+self.offset_y, fill="white", width=3)
 
@@ -544,6 +596,7 @@ else:
 
 root = Tk()
 app = Window(root, 'maps/'+map, pixel_width, restore_session)
+
 root.attributes('-fullscreen', True)
-root.wm_title("Tkinter window")
+root.wm_title("Lunar Heightmap Calculator")
 root.mainloop()
