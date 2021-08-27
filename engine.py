@@ -16,6 +16,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 from tkinter import *
 
 import json
@@ -30,10 +31,10 @@ import matplotlib as mpl
 
 
 class Window(Frame):
-    def __init__(self, master=None, map=None, pixel_width=None, restore_session=None):
+    def __init__(self, master=None, map=None, pixel_width=None, restore_session=None, subwindow=None):
 
         self.pixel_width = pixel_width
-
+        self.subwindow = subwindow
 
         self.offset_x = 0
         self.offset_y = 0
@@ -59,8 +60,8 @@ class Window(Frame):
         self.canvas.pack(fill=BOTH, expand=1)
         self.pack(fill=BOTH, expand=1)
 
-
-        print('LOADING   \"' + map + '\" ', end='', flush=True)
+        self.map = map
+        print('LOADING   \"' + map + '\" ', end=' ', flush=True)
         self.im = Image.open(map)
         self.data = self.im.load()
         self.data_min, self.data_max = self.im.getextrema()
@@ -68,12 +69,15 @@ class Window(Frame):
         self.planet_diameter = (self.reference_offset + self.data_min) * 2
         self.scaling_factor = 0.5   # from LOLA label
 
-
-        print(self.im.getextrema(), end=' ')
-        print('done.')
-
+        print(self.im.size, end=' ')
+        map_res_x, map_res_y = self.im.size
+        #self.zoom = int((max(map_res_x,map_res_y) / 2500)*100)/100
         self.zoom = 1
-        #self.zoom = 2
+        print('zoom', end='=')
+        print(self.zoom, end=' ')
+
+        print('extrema', end='=')
+        print(self.im.getextrema())
 
         if not restore_session:
             print('RESIZE    \"session/display.png\" ', end='', flush=True)
@@ -96,7 +100,10 @@ class Window(Frame):
             im_edit = cm_hot(im_edit)
             im_edit = np.uint8(im_edit * 255)
             im_edit = Image.fromarray(im_edit)
-            im_edit.save('session/display.png')
+            if self.subwindow:
+                im_edit.save('session/display_crop.png')
+            else:
+                im_edit.save('session/display.png')
             print('done.')
 
             legend_array = [range(0,255)]*20
@@ -105,7 +112,11 @@ class Window(Frame):
             im_legend = Image.fromarray(im_legend)
             im_legend.save('session/legend.png')
 
-        self.canvas.image = ImageTk.PhotoImage(Image.open('session/display.png'))
+        if self.subwindow:
+            self.canvas.image = ImageTk.PhotoImage(Image.open('session/display_crop.png'))
+        else:
+            self.canvas.image = ImageTk.PhotoImage(Image.open('session/display.png'))
+
         self.display_image = self.canvas.create_image((0,0), image=self.canvas.image, anchor='nw')
 
         self.display_grid_x = self.canvas.create_line(0,int(self.canvas.image.height()/2), self.canvas.image.width(),int(self.canvas.image.height()/2), fill="black",  width=1)
@@ -177,9 +188,11 @@ class Window(Frame):
         self.move_image(move_x,move_y)
 
     def crop_map(self,event):
-        print('select rectangle')
-        self.crop_mode = True
-
+        if self.subwindow:
+            print('to crop again go back to main map with ESC')
+        else:
+            print('select rectangle')
+            self.crop_mode = True
 
     def go_left(self,event):
         self.offset_x = self.offset_x + 200
@@ -215,7 +228,11 @@ class Window(Frame):
 
     def toggle_geom(self,event):
         print('ESC')
-        exit(0)
+        self.master.destroy()
+        try:
+            self.master.update()
+        except Exception:
+            pass
 
     def left_click(self, content):
           global x,y
@@ -232,6 +249,19 @@ class Window(Frame):
           self.old_drag_x = event.x
           self.old_drag_y = event.y
 
+    def create_crop_map(self,start_x,start_y,end_x,end_y):
+        map_name = self.map[:len(self.map)-4] + '_crop.png'
+        print('saving ' + map_name)
+        self.im.crop((start_x, start_y, end_x, end_y)).save(map_name)
+
+        self.newWindow = Toplevel(root)
+        subapp = Window(self.newWindow, map_name, pixel_width=self.pixel_width, restore_session=False, subwindow=True)
+
+        self.newWindow.attributes('-fullscreen', True)
+        self.newWindow.wm_title("Lunar Heightmap Calculator")
+        self.newWindow.mainloop()
+
+
     def calc_crop(self,x,y):
         global start_x, start_y
 
@@ -243,8 +273,10 @@ class Window(Frame):
             print('Second crop click')
             end_x = x - self.offset_x
             end_y = y - self.offset_y
-            self.draw_rectangle = self.canvas.create_rectangle(start_x, start_y, end_x, end_y, fill="black", outline="white")
+            self.draw_rectangle = self.canvas.create_rectangle(start_x + self.offset_x, start_y + self.offset_y, end_x + self.offset_x, end_y + self.offset_y, outline="white")
             self.crop_mode = False
+            self.new_dot = True
+            self.create_crop_map(start_x,start_y,end_x,end_y)
 
     def calc_line(self,x,y):
 
@@ -481,7 +513,7 @@ print('│      ██╔══██║╚════██║██║  █�
 print('│      ██║  ██║███████║██████╔╝╚██████╗      │       │ W │           │       │')
 print('│      ╚═╝  ╚═╝╚══════╝╚═════╝  ╚═════╝      │   ┌───┼───┼───┐       │       │')
 print('│                                            │   │ A │ S │ D │       │       │')
-print('│    Heightmap Surface Distance Calculator   │   └───┴───┴───┘       └───────┘')
+print('│         Lunar Heightmap Calculator         │   └───┴───┴───┘       └───────┘')
 print('└────────────────────────────────────────────┘      move map        select points')
 print()
 
@@ -549,53 +581,80 @@ def download():
 
     return file_name_new
 
-# HEIGHTMAP PROPERTY SETTINGS
-with open('session/config.json', 'r') as f:
-    config = json.load(f)
+def pixel_width(config, map):
 
-print('LOADED : ' + str(config))
+    pw_M = map.split("_")[2].split(".")[0] # [LDEM, 45S, [400M,png]]
+    pixel_width =  int(pw_M[:len(pw_M)-1]) # 400M -> 400
 
-edit_input = input('Restore previous session? n/[y]: ')
-if edit_input == '' or edit_input == 'y':
-    map = config['map']
-    pixel_width = config['pixel_width']
-    restore_session = True
-elif edit_input == 'n':
-    print()
-    map_table = PrettyTable(['AVAILABLE MAPS'])
-    map_table.align['AVAILABLE MAPS'] = 'l'
-    map_table.set_style(DRAWING)
-    f = []
-    for (dirpath, dirnames, filenames) in walk('./maps'):
-        f.extend(filenames)
-        break
-
-    for file in f:
-        if file[len(file)-4:len(file)] == '.png':
-            map_table.add_row([file])
-    map_table.add_row(['DOWNLOAD MORE'])
-    print(map_table)
-    select =  str(input('          Select map: '))
-    if select == 'DOWNLOAD MORE':
-        map = download()
-    else:
-        map = select
-
-    pixel_width =      int(input('          Insert width of a pixel [m]: '))
-
-    restore_session = False
     config['map'] = map
     config['pixel_width'] = pixel_width
 
     with open('session/config.json', 'w') as f:
         json.dump(config, f)
     print('SAVED preset into session/config.json')
+
+    return pixel_width
+
+# ENTRY
+# HEIGHTMAP PROPERTY SETTINGS
+
+if not os.path.exists('maps') or not os.path.exists('session'):
+    fresh_start = True
+    if not os.path.exists('maps'):
+        os.makedirs('maps')
+    if not os.path.exists('session'):
+        os.makedirs('session')
+    config = {
+    "map": "DOWNLOAD MORE",
+    "pixel_width": 0,
+    }
+    with open('session/config.json', 'w') as f:
+        json.dump(config, f)
 else:
-    exit(0)
+    fresh_start = False
+
+with open('session/config.json', 'r') as f:
+    config = json.load(f)
+
+if config['map'] != "DOWNLOAD MORE":
+    print('LOADED : ' + str(config))
+    edit_input = input('Restore previous session? n/[y]: ')
+    if edit_input == '' or edit_input == 'y':
+        map = config['map']
+        pixel_width = config['pixel_width']
+        restore_session = True
+    elif edit_input == 'n':
+        print()
+        map_table = PrettyTable(['AVAILABLE MAPS'])
+        map_table.align['AVAILABLE MAPS'] = 'l'
+        map_table.set_style(DRAWING)
+        f = []
+        for (dirpath, dirnames, filenames) in walk('./maps'):
+            f.extend(filenames)
+            break
+
+        for file in f:
+            if file[len(file)-4:len(file)] == '.png':
+                map_table.add_row([file])
+        map_table.add_row(['DOWNLOAD MORE'])
+        print(map_table)
+        select =  str(input('          Select map: '))
+        if select == 'DOWNLOAD MORE':
+            map = download()
+        else:
+            map = select
+        pixel_width = pixel_width(config, map)
+        restore_session = False
+    else:
+        sys.exit(0)
+else:
+    map = download()
+    pixel_width = pixel_width(config, map)
+    restore_session = False
 
 
 root = Tk()
-app = Window(root, 'maps/'+map, pixel_width, restore_session)
+app = Window(root, 'maps/'+map, pixel_width, restore_session, subwindow=False)
 
 root.attributes('-fullscreen', True)
 root.wm_title("Lunar Heightmap Calculator")
