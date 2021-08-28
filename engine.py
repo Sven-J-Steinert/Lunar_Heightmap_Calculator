@@ -46,6 +46,7 @@ class Window(Frame):
         master.bind("<Button 1>",self.left_click)
         master.bind('<B3-Motion>', self.right_click_drag)
         master.bind("<Button 3>",self.right_click)
+        master.bind("<Motion>", self.getPosition)
 
         master.bind("q",self.recenter)
         master.bind("e",self.save_png)
@@ -119,8 +120,9 @@ class Window(Frame):
 
         self.display_image = self.canvas.create_image((0,0), image=self.canvas.image, anchor='nw')
 
-        self.display_grid_x = self.canvas.create_line(0,int(self.canvas.image.height()/2), self.canvas.image.width(),int(self.canvas.image.height()/2), fill="black",  width=1)
-        self.display_grid_y = self.canvas.create_line(int(self.canvas.image.width()/2),0, int(self.canvas.image.width()/2),self.canvas.image.height(), fill="black",  width=1)
+        if not self.subwindow:
+            self.display_grid_x = self.canvas.create_line(0,int(self.canvas.image.height()/2), self.canvas.image.width(),int(self.canvas.image.height()/2), fill="black",  width=1)
+            self.display_grid_y = self.canvas.create_line(int(self.canvas.image.width()/2),0, int(self.canvas.image.width()/2),self.canvas.image.height(), fill="black",  width=1)
 
 
 
@@ -171,6 +173,8 @@ class Window(Frame):
     def right_click_drag(self,event):
         delta_x = self.old_drag_x - event.x
         delta_y = self.old_drag_y - event.y
+        self.offset_x = self.offset_x - delta_x
+        self.offset_y = self.offset_y - delta_y
         self.move_image(-delta_x,-delta_y)
         self.old_drag_x = event.x
         self.old_drag_y = event.y
@@ -187,11 +191,21 @@ class Window(Frame):
         self.offset_y = self.offset_y + move_y
         self.move_image(move_x,move_y)
 
+    def getPosition(self,event):
+       if self.crop_mode and not self.new_dot:
+           x = root.winfo_pointerx()-root.winfo_rootx()
+           y = root.winfo_pointery()-root.winfo_rooty()
+           if self.draw_rectangle is not None:
+               self.canvas.delete(self.draw_rectangle)
+           self.draw_rectangle = self.canvas.create_rectangle(self.crop_start_x + self.offset_x, self.crop_start_y + self.offset_y, x, y, outline="white")
+       pass
+
     def crop_map(self,event):
         if self.subwindow:
-            print('to crop again go back to main map with ESC')
+            print('DENIED:      to crop again go back to main map with ESC')
         else:
-            print('select rectangle')
+            print('CROP MODE  Select rectangle:', end=' ',flush=True)
+            self.draw_rectangle = None
             self.crop_mode = True
 
     def go_left(self,event):
@@ -213,8 +227,9 @@ class Window(Frame):
 
     def move_image(self,x,y):
         self.canvas.move(self.display_image, x, y)
-        self.canvas.move(self.display_grid_x, x, y)
-        self.canvas.move(self.display_grid_y, x, y)
+        if not self.subwindow:
+            self.canvas.move(self.display_grid_x, x, y)
+            self.canvas.move(self.display_grid_y, x, y)
 
         if self.draw_dot_temp:
             self.canvas.move(self.draw_dot_temp, x, y)
@@ -238,7 +253,7 @@ class Window(Frame):
           global x,y
           x = content.x
           y = content.y
-          print(tuple((x,y)))
+          #print(tuple((x,y)))
           if self.crop_mode:
               self.calc_crop(x,y)
           else:
@@ -251,7 +266,7 @@ class Window(Frame):
 
     def create_crop_map(self,start_x,start_y,end_x,end_y):
         map_name = self.map[:len(self.map)-4] + '_crop.png'
-        print('saving ' + map_name)
+        print('SAVING    \"'+ map_name + '\"')
         self.im.crop((start_x, start_y, end_x, end_y)).save(map_name)
 
         self.newWindow = Toplevel(root)
@@ -268,19 +283,24 @@ class Window(Frame):
         global start_x, start_y
 
         if self.new_dot:
+            self.crop_start_x = x - self.offset_x
+            self.crop_start_y = y - self.offset_y
             start_x = int((x - self.offset_x)*self.zoom)
             start_y = int((y - self.offset_y)*self.zoom)
             self.new_dot = False
+            print('First ' + str(tuple((start_x,start_y))), end=' ',flush=True)
         else:
-            print('Second crop click')
             end_x = int((x - self.offset_x)*self.zoom)
             end_y = int((y - self.offset_y)*self.zoom)
-            self.draw_rectangle = self.canvas.create_rectangle(start_x + self.offset_x, start_y + self.offset_y, end_x + self.offset_x, end_y + self.offset_y, outline="white")
             self.crop_mode = False
             self.new_dot = True
-            print(tuple((start_x,start_y)))
-            print(tuple((end_x,end_y)))
-            self.create_crop_map(start_x,start_y,end_x,end_y)
+            x1 = min(start_x,end_x)
+            x2 = max(start_x,end_x)
+            y1 = min(start_y,end_y)
+            y2 = max(start_y,end_y)
+            self.canvas.delete(self.draw_rectangle)
+            print('Second ' + str(tuple((end_x,end_y))))
+            self.create_crop_map(x1,y1,x2,y2)
 
     def calc_line(self,x,y):
 
