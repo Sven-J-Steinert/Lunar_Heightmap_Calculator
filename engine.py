@@ -71,8 +71,8 @@ class Window(Frame):
 
         print(self.im.size, end=' ')
         map_res_x, map_res_y = self.im.size
-        #self.zoom = int((max(map_res_x,map_res_y) / 2500)*100)/100
-        self.zoom = 1
+        self.zoom = int((max(map_res_x,map_res_y) / 2500)*100)/100
+        #self.zoom = 1
         print('zoom', end='=')
         print(self.zoom, end=' ')
 
@@ -259,23 +259,27 @@ class Window(Frame):
 
         self.newWindow.attributes('-fullscreen', True)
         self.newWindow.wm_title("Lunar Heightmap Calculator")
+        self.newWindow.focus()
         self.newWindow.mainloop()
+
 
 
     def calc_crop(self,x,y):
         global start_x, start_y
 
         if self.new_dot:
-            start_x = x - self.offset_x
-            start_y = y - self.offset_y
+            start_x = int((x - self.offset_x)*self.zoom)
+            start_y = int((y - self.offset_y)*self.zoom)
             self.new_dot = False
         else:
             print('Second crop click')
-            end_x = x - self.offset_x
-            end_y = y - self.offset_y
+            end_x = int((x - self.offset_x)*self.zoom)
+            end_y = int((y - self.offset_y)*self.zoom)
             self.draw_rectangle = self.canvas.create_rectangle(start_x + self.offset_x, start_y + self.offset_y, end_x + self.offset_x, end_y + self.offset_y, outline="white")
             self.crop_mode = False
             self.new_dot = True
+            print(tuple((start_x,start_y)))
+            print(tuple((end_x,end_y)))
             self.create_crop_map(start_x,start_y,end_x,end_y)
 
     def calc_line(self,x,y):
