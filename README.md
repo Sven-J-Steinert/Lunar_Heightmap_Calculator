@@ -11,7 +11,8 @@ Downloader supports Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) ht
 Run executable
 ```
 download Release
-run Lunar_Heightmap_Calculator_1.0.exe         -> select a Lunar heightmap to download, convert and display
+run Lunar_Heightmap_Calculator_1.0.exe        
+  -> select a Lunar heightmap to download, convert and display
 ```
 
 Controls
