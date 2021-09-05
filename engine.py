@@ -29,7 +29,8 @@ Image.MAX_IMAGE_PIXELS = 1000000000
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-
+import tkinter.font as TkFont
+import ctypes
 
 class Window(Frame):
     def __init__(self, master=None, map=None, pixel_width=None, restore_session=None, subwindow=None):
@@ -39,6 +40,10 @@ class Window(Frame):
 
         self.offset_x = 0
         self.offset_y = 0
+
+        #self.font = 'Arial 12'
+        PIXEL_HEIGHT = 15
+        self.font = TkFont.Font(size = PIXEL_HEIGHT)
 
         Frame.__init__(self, master)
         self.master = master
@@ -130,7 +135,7 @@ class Window(Frame):
 
 
 
-        self.font = 'Arial 12'
+
 
         self.canvas.legend = ImageTk.PhotoImage(Image.open('session/legend.png'))
         self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20-280, image=self.canvas.legend, anchor='se')
@@ -193,6 +198,7 @@ class Window(Frame):
         self.offset_x = self.offset_x + move_x
         self.offset_y = self.offset_y + move_y
         self.move_image(move_x,move_y)
+        print('MOVE       re-centered ')
 
     def getPosition(self,event):
        if self.crop_mode and not self.new_dot:
@@ -496,10 +502,11 @@ class Window(Frame):
 
 
         # INFO OUTPUT
+        print('MEASURE    ',end='')
         print(f'{meter_count:.2f}' + ' m')
-        print('             with ~' + f'{float(distortion):.4f}' + '% curvature distortion (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(circle_segment):.4f}' + ' m curved)')
-        edge_distortion = abs((1 - (flat_length_meter/flat_meter_count)) *100)
-        print('             with ~' + f'{float(edge_distortion):.4f}' + '% edge distortion left (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(flat_meter_count):.4f}' + ' m calculated flat)')
+        #print('             with ~' + f'{float(distortion):.4f}' + '% curvature distortion (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(circle_segment):.4f}' + ' m curved)')
+        #edge_distortion = abs((1 - (flat_length_meter/flat_meter_count)) *100)
+        #print('             with ~' + f'{float(edge_distortion):.4f}' + '% edge distortion left (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(flat_meter_count):.4f}' + ' m calculated flat)')
 
         result_text = f'{(meter_count):,.0f}'
         px_space = [0,10,30,40,45,50,55,65,70,75,90]
@@ -547,27 +554,28 @@ class Window(Frame):
         self.zero_label_text = self.canvas.create_text(root.winfo_screenwidth()-1212,root.winfo_screenheight()-20,fill="black", font=self.font,
                         text='0', anchor='center')
 
-        px_space = [0,10,30,45,50,68,80,90,100,110,140]
+        px_space = [0,15,35,45,50,68,80,90,100,110,140]
         result_text_flat = f'{float(flat_length_meter):,.0f}'
-        print(len(result_text_flat))
+
         self.flat_label_line = self.canvas.create_line(root.winfo_screenwidth()-23,root.winfo_screenheight()-8, root.winfo_screenwidth()-23,root.winfo_screenheight()-38, fill="white",  width=2)
         self.flat_label_box = self.canvas.create_rectangle(root.winfo_screenwidth()-50-px_space[len(result_text_flat)],root.winfo_screenheight()-9, root.winfo_screenwidth()-23,root.winfo_screenheight()-33, fill="white", outline='white')
-        self.flat_label_text = self.canvas.create_text(root.winfo_screenwidth()-25,root.winfo_screenheight()-7,fill="black", font=self.font,
-                        text=result_text_flat + ' m', anchor='se')
+        self.flat_label_text = self.canvas.create_text(root.winfo_screenwidth()-35,root.winfo_screenheight()-20,fill="black", font=self.font,
+                        text=result_text_flat + ' m', anchor='e')
 
 
-print('┌────────────────────────────────────────────┐')
-print('│                                            │               Controls')
-print('│      ██╗  ██╗███████╗██████╗  ██████╗      │                       ')
-print('│      ██║  ██║██╔════╝██╔══██╗██╔════╝      │                       ┌───┬───┐')
-print('│      ███████║███████╗██║  ██║██║           │                       │ L │ R │')
-print('│      ██╔══██║╚════██║██║  ██║██║           │       ┌───┐           ├───┴───┤')
-print('│      ██║  ██║███████║██████╔╝╚██████╗      │       │ W │           │       │')
-print('│      ╚═╝  ╚═╝╚══════╝╚═════╝  ╚═════╝      │   ┌───┼───┼───┐       │       │')
-print('│                                            │   │ A │ S │ D │       │       │')
-print('│         Lunar Heightmap Calculator         │   └───┴───┴───┘       └───────┘')
-print('└────────────────────────────────────────────┘      move map        select points')
+print('┌────────────────────────────────────┐                CONTROLS')
+print('│                                    │')
+print('│      ██╗     ██╗  ██╗ ██████╗      │   ┌─────┐                 ┌───┐')
+print('│      ██║     ██║  ██║██╔════╝      │   │ LMB │ Select points   │ C │   Crop mode')
+print('│      ██║     ███████║██║           │   └─────┘                 └───┘')
+print('│      ██║     ██╔══██║██║           │   ┌─────┐                 ┌───┐')
+print('│      ███████╗██║  ██║╚██████╗      │   │ RMB │ Drag map        │ Q │   Re-center map')
+print('│      ╚══════╝╚═╝  ╚═╝ ╚═════╝      │   └─────┘                 └───┘')
+print('│                                    │   ┌─────┐                 ┌───┐')
+print('│     Lunar Heightmap Calculator     │   │ ESC │ Exit / Back     │ E │   Take screenshot ')
+print('└────────────────────────────────────┘   └─────┘                 └───┘')
 print()
+
 
 def download():
     url = 'http://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/JP2/'
@@ -617,7 +625,6 @@ def download():
 
 
     print()
-
     print('maps/' + file_name, end=' ', flush=True)
     im = Image.open('maps/' + file_name)
     print('opened.', end=' ', flush=True)
@@ -705,8 +712,9 @@ else:
     restore_session = False
 
 
-for m in get_monitors():
-    print('',end='')
+#for m in get_monitors():
+#    print('',end='')
+
 
 root = Tk()
 app = Window(root, 'maps/'+map, pixel_width, restore_session, subwindow=False)
