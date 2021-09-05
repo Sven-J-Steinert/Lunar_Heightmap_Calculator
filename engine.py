@@ -19,18 +19,20 @@ import matplotlib.pyplot as plt
 
 
 from tkinter import *
+import tkinter.font as TkFont
 
 import json
 # pip install pillow
 from PIL import Image, ImageTk, ImageMath
 Image.MAX_IMAGE_PIXELS = 1000000000
 
-
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-import tkinter.font as TkFont
-import ctypes
+
+
+
+
 
 class Window(Frame):
     def __init__(self, master=None, map=None, pixel_width=None, restore_session=None, subwindow=None):
@@ -216,6 +218,7 @@ class Window(Frame):
             print('CROP MODE  Select rectangle:', end=' ',flush=True)
             self.draw_rectangle = None
             self.crop_mode = True
+            self.new_dot = True
             self.canvas.config(cursor="tcross")
 
     def go_left(self,event):
@@ -503,7 +506,7 @@ class Window(Frame):
 
         # INFO OUTPUT
         print('MEASURE    ',end='')
-        print(f'{meter_count:.2f}' + ' m')
+        print(f'{meter_count:,.0f}' + ' m')
         #print('             with ~' + f'{float(distortion):.4f}' + '% curvature distortion (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(circle_segment):.4f}' + ' m curved)')
         #edge_distortion = abs((1 - (flat_length_meter/flat_meter_count)) *100)
         #print('             with ~' + f'{float(edge_distortion):.4f}' + '% edge distortion left (' + f'{float(flat_length_meter):.4f}' + ' m flat vs. ' + f'{float(flat_meter_count):.4f}' + ' m calculated flat)')
@@ -712,11 +715,13 @@ else:
     restore_session = False
 
 
-#for m in get_monitors():
-#    print('',end='')
+for m in get_monitors():
+    print('',end='')
+
 
 
 root = Tk()
+root.tk.call('tk', 'scaling', 1.5)
 app = Window(root, 'maps/'+map, pixel_width, restore_session, subwindow=False)
 
 root.attributes('-fullscreen', True)
