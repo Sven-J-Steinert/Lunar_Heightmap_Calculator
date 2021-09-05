@@ -1,4 +1,8 @@
 # Lunar Heightmap Calculator
+
+This tool was written for Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
+LOLA maps
+
 **Features**
 * surface-distance calculation
 * air-distance calculation
@@ -6,11 +10,8 @@
 * heightmap contrast colouring
 * map downloader
 
-Downloader supports Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
-
-**Run executable**
+**Run executable** download [Release](https://github.com/unconsciou5/Lunar_Heightmap_Calculator/releases)
 ```
-download Release
 run Lunar_Heightmap_Calculator_1.0.exe        
   -> select a Lunar heightmap to download, convert and display
 ```
