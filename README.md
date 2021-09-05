@@ -1,7 +1,7 @@
 # Lunar Heightmap Calculator
 
-This tool was written for Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
-LOLA maps
+This tool was written for Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/ <br />
+LOLA maps can be downloaded and measured through this application
 
 **Features**
 * surface-distance calculation
