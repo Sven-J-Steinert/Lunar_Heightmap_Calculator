@@ -10,7 +10,7 @@ LOLA maps
 * heightmap contrast colouring
 * map downloader
 
-**Run executable** download [Release](https://github.com/unconsciou5/Lunar_Heightmap_Calculator/releases)
+**Run executable** - download [Release](https://github.com/unconsciou5/Lunar_Heightmap_Calculator/releases)
 ```
 run Lunar_Heightmap_Calculator_1.0.exe        
   -> select a Lunar heightmap to download, convert and display
