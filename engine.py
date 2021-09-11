@@ -6,17 +6,9 @@ import os
 from os import walk
 from screeninfo import get_monitors
 
-import subprocess
-import PIL.ImageGrab as ImageGrab
-
-from skimage import io, img_as_float32
-from mpmath import mp
-mp.prec = 100   # precision: 32 digits after zero
-
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 from tkinter import *
 import tkinter.font as TkFont
@@ -25,10 +17,10 @@ import json
 # pip install pillow
 from PIL import Image, ImageTk, ImageMath
 Image.MAX_IMAGE_PIXELS = 1000000000
+import PIL.ImageGrab as ImageGrab
 
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-
+import matplotlib.pyplot as plt
 
 
 
@@ -398,7 +390,8 @@ class Window(Frame):
 
         self.sample_length = 1 # in pixel
 
-        alpha = mp.atan(delta_x/delta_y)
+        #alpha = mp.atan(delta_x/delta_y)
+        alpha = math.atan(delta_x/delta_y)
 
         x_step_size = math.sin(alpha) * self.sample_length
         y_step_size = math.cos(alpha) * self.sample_length
@@ -500,8 +493,9 @@ class Window(Frame):
 
 
         # CURVATURE DISTORTION
-        circle_segment = self.planet_diameter * mp.asin(flat_length_meter/self.planet_diameter)
-        distortion = mp.mpf((1 - (flat_length_meter/circle_segment)) * 100)
+        circle_segment = self.planet_diameter * math.asin(flat_length_meter/self.planet_diameter)
+        #distortion = mp.mpf((1 - (flat_length_meter/circle_segment)) * 100)
+        distortion = (1 - (flat_length_meter/circle_segment)) * 100
 
 
         # INFO OUTPUT
@@ -557,12 +551,12 @@ class Window(Frame):
         self.zero_label_text = self.canvas.create_text(root.winfo_screenwidth()-1212,root.winfo_screenheight()-20,fill="black", font=self.font,
                         text='0', anchor='center')
 
-        px_space = [0,15,35,45,50,68,80,90,100,110,140]
+        px_space = [0,15,35,45,50,68,85,95,100,110,140]
         result_text_flat = f'{float(flat_length_meter):,.0f}'
 
         self.flat_label_line = self.canvas.create_line(root.winfo_screenwidth()-23,root.winfo_screenheight()-8, root.winfo_screenwidth()-23,root.winfo_screenheight()-38, fill="white",  width=2)
         self.flat_label_box = self.canvas.create_rectangle(root.winfo_screenwidth()-50-px_space[len(result_text_flat)],root.winfo_screenheight()-9, root.winfo_screenwidth()-23,root.winfo_screenheight()-33, fill="white", outline='white')
-        self.flat_label_text = self.canvas.create_text(root.winfo_screenwidth()-35,root.winfo_screenheight()-20,fill="black", font=self.font,
+        self.flat_label_text = self.canvas.create_text(root.winfo_screenwidth()-32,root.winfo_screenheight()-20,fill="black", font=self.font,
                         text=result_text_flat + ' m', anchor='e')
 
 
@@ -595,9 +589,8 @@ def download():
         # url + '/' + node.get('href') for node in soup.find_all('a') if node.get('href').endswith(ext)
         return [ node.get('href') for node in soup.find_all('a') if node.get('href').endswith(ext)]
 
-    table = PrettyTable(['FILE NAMES'])
+    table = PrettyTable(['FILE NAMES'], horizontal_char='─', vertical_char='│', right_junction_char='┤',left_junction_char='├',top_right_junction_char='┐',top_left_junction_char='┌',bottom_right_junction_char='┘',bottom_left_junction_char='└',header=False)
     table.align['FILE NAMES'] = 'l'
-    table.set_style(DRAWING)
 
     for file in listFD(url, ext):
         if file[0:4] == 'LDEM':
@@ -687,9 +680,8 @@ if config['map'] != "DOWNLOAD MORE":
         restore_session = True
     elif edit_input == 'n':
         print()
-        map_table = PrettyTable(['AVAILABLE MAPS'])
+        map_table = PrettyTable(['AVAILABLE MAPS'] , horizontal_char='─', vertical_char='│', right_junction_char='┤',left_junction_char='├',top_right_junction_char='┐',top_left_junction_char='┌',bottom_right_junction_char='┘',bottom_left_junction_char='└',header=False)
         map_table.align['AVAILABLE MAPS'] = 'l'
-        map_table.set_style(DRAWING)
         f = []
         for (dirpath, dirnames, filenames) in walk('./maps'):
             f.extend(filenames)
@@ -715,14 +707,13 @@ else:
     restore_session = False
 
 
-for m in get_monitors():
+for m in get_monitors():    # resets Windows DPI scaling
     print('',end='')
-
 
 
 root = Tk()
 root.tk.call('tk', 'scaling', 1.5)
-app = Window(root, 'maps/'+map, pixel_width, restore_session, subwindow=False)
+app = Window(root, 'maps/' + map, pixel_width, restore_session, subwindow=False)
 
 root.attributes('-fullscreen', True)
 root.wm_title("Lunar Heightmap Calculator")
