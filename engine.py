@@ -1,8 +1,9 @@
+import os
+os.system('mode con: cols=100 lines=60')
 from bs4 import BeautifulSoup
 import requests
 import sys
 from prettytable import *
-import os
 from os import walk
 from screeninfo import get_monitors
 
