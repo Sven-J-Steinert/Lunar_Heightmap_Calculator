@@ -1,5 +1,6 @@
 # Lunar Heightmap Calculator
 
+![](https://raw.githubusercontent.com/unconsciou5/Lunar_Heightmap_Calculator/master/doc/preview.gif)
 
 This tool was written for Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
 
