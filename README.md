@@ -1,6 +1,7 @@
 # Lunar Heightmap Calculator
 
-This tool was written for Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/ 
+
+This tool was written for Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LOLA) http://imbrium.mit.edu/
 
 **Features**
 * surface-distance calculation
@@ -27,7 +28,7 @@ E                     Take screenshot
 
 **Run from source**
 ```
-install dependencies
+install requirements.txt
 run engine.py         -> select a Lunar height map to automatically download, convert and display
                       -> analyse and measure on heightmap
 ```
