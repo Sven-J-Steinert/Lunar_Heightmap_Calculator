@@ -11,8 +11,9 @@ This tool was written for Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LO
 * heightmap contrast colouring
 * map downloader
 
-**Run executable** - [![Download Release](https://img.shields.io/github/v/release/unconsciou5/Lunar_Heightmap_Calculator?color=brightgreen&label=Download%20Installer&logo=windows&style=for-the-badge)](https://github.com/unconsciou5/Lunar_Heightmap_Calculator/releases)
+[![Download Release](https://img.shields.io/github/v/release/unconsciou5/Lunar_Heightmap_Calculator?color=brightgreen&label=Download%20Executable&logo=windows&style=for-the-badge)](https://github.com/unconsciou5/Lunar_Heightmap_Calculator/releases/latest/)
 
+**Run executable**
 ```
 run Lunar_Heightmap_Calculator_1.0.exe        
   -> select a Lunar heightmap to download, convert and display
