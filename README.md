@@ -15,7 +15,7 @@ This tool was written for Lunar Hightmaps from Lunar Orbiter Laser Altimeter (LO
 
 **Run executable**
 ```
-run Lunar_Heightmap_Calculator_1.0.exe        
+run Lunar_Heightmap_Calculator.exe        
   -> select a Lunar heightmap to download, convert and display
 ```
 
