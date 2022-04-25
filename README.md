@@ -31,7 +31,7 @@ E                     Take screenshot
 
 **Run from source**
 ```
-install requirements.txt
+install requirements.txt |  pip install -r .\requirements.txt
 run engine.py         -> select a Lunar height map to automatically download, convert and display
                       -> analyse and measure on heightmap
 ```
