@@ -122,6 +122,8 @@ class Window(Frame):
         else:
             self.canvas.image = ImageTk.PhotoImage(Image.open('session/display.png'))
 
+        self.canvas.controls = ImageTk.PhotoImage(Image.open('controls.png'))
+
         self.display_image = self.canvas.create_image((0,0), image=self.canvas.image, anchor='nw')
 
         if not self.subwindow:
@@ -129,8 +131,7 @@ class Window(Frame):
             self.display_grid_y = self.canvas.create_line(int(self.canvas.image.width()/2),0, int(self.canvas.image.width()/2),self.canvas.image.height(), fill="black",  width=1)
 
 
-
-
+        self.canvas.create_image(30,30, image=self.canvas.controls, anchor='nw')
 
         self.canvas.legend = ImageTk.PhotoImage(Image.open('session/legend.png'))
         self.canvas.create_image(root.winfo_screenwidth()-20,root.winfo_screenheight()-20-280, image=self.canvas.legend, anchor='se')
